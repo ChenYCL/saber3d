@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Saber 3D v2 — 圣剑骑士 vs 恶魔</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0d1118;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#fff}
+  canvas{display:block}
+  #ui{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:14px;z-index:5}
+  #ui button{font:600 18px/1 inherit;font-family:inherit;padding:14px 26px;border-radius:12px;cursor:pointer;color:#f5ecd2;
+    background:linear-gradient(180deg,rgba(40,62,120,.92),rgba(18,28,62,.92));border:1px solid rgba(232,196,104,.75);
+    box-shadow:0 6px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18);letter-spacing:2px;transition:transform .12s,filter .12s}
+  #ui button:hover{transform:translateY(-2px);filter:brightness(1.18)}
+  #ui button.on{background:linear-gradient(180deg,#b8913a,#6f531a);color:#fff}
+  #hud{position:fixed;top:28px;left:50%;transform:translateX(-50%);width:min(560px,70vw);z-index:5;text-align:center}
+  #hud .name{font-weight:700;letter-spacing:3px;font-size:18px;text-shadow:0 2px 6px #000;margin-bottom:8px;color:#ffd9c4}
+  #hpwrap{height:18px;border-radius:10px;background:rgba(0,0,0,.55);border:1px solid rgba(255,210,160,.55);overflow:hidden;position:relative;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+  #hplag{position:absolute;inset:0;width:100%;background:#f3d27a;transition:width .9s ease .25s}
+  #hp{position:absolute;inset:0;width:100%;background:linear-gradient(180deg,#ff5a4a,#a0101a);transition:width .18s}
+  #hptxt{position:absolute;inset:0;font:700 12px/18px inherit;text-shadow:0 1px 2px #000}
+  #win{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:4;opacity:0;transition:opacity .8s}
+  #win span{font-size:min(16vw,170px);font-weight:900;letter-spacing:.15em;color:#ffe9a8;
+    text-shadow:0 0 18px rgba(255,200,80,.9),0 0 60px rgba(255,160,40,.6),0 6px 0 #6b4a10;transform:scale(.8);transition:transform .8s cubic-bezier(.2,1.6,.4,1)}
+  #win.show{opacity:1}#win.show span{transform:scale(1)}
+  #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0d1118;z-index:9;font-size:18px;letter-spacing:3px;transition:opacity .6s}
+  #bench{position:fixed;left:16px;top:16px;font:13px/1.5 monospace;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:8px;z-index:6;display:none;white-space:pre}
+  #credit{position:fixed;right:12px;bottom:8px;font-size:11px;opacity:.55;z-index:5}
+</style>
+<script type="importmap">
+{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}
+</script>
+</head>
+<body>
+<div id="load">加载中…</div>
+<div id="hud"><div class="name">深渊恶魔 · DEMON</div><div id="hpwrap"><div id="hplag"></div><div id="hp"></div><div id="hptxt">100 / 100</div></div></div>
+<div id="win"><span>胜利</span></div>
+<div id="ui">
+  <button id="bSwing">挥剑</button>
+  <button id="bAttack">攻击怪兽</button>
+  <button id="bReset">重置</button>
+  <button id="bOrbit">旋转视角</button>
+</div>
+<div id="bench"></div>
+<div id="credit">Models: Quaternius (CC0) · HDRI/Textures: Poly Haven (CC0) · three.js (MIT)</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
+
+const Q = new URLSearchParams(location.search);
+const DEMO = Q.get('demo');            // idle | attack
+const BENCH = Q.get('bench') === '1';
+const T0 = performance.now();
+
+// ---------- renderer / scene ----------
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const FOG = new THREE.Color(0xc4d3e2);
+scene.fog = new THREE.FogExp2(FOG, 0.016);
+
+const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.1, 400);
+const CAM_HOME = new THREE.Vector3(0.5, 1.75, 6.4);
+const TARGET_HOME = new THREE.Vector3(0.1, 1.05, 0);
+camera.position.copy(CAM_HOME);
+if (Q.get('cam')) { const c = Q.get('cam').split(',').map(Number); CAM_HOME.set(c[0], c[1], c[2]); TARGET_HOME.set(c[3], c[4], c[5]); camera.position.copy(CAM_HOME); }
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(TARGET_HOME);
+controls.enableDamping = true; controls.minDistance = 4; controls.maxDistance = 18;
+controls.maxPolarAngle = Math.PI * 0.49; controls.autoRotateSpeed = 1.2;
+
+// lights
+const hemi = new THREE.HemisphereLight(0xdfe9ff, 0x4a5a2a, 0.35); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.6);
+sun.position.set(-6, 10, 6);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 30 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; sun.shadow.radius = 4;
+scene.add(sun);
+const rim = new THREE.DirectionalLight(0xbfd8ff, 1.4); rim.position.set(4, 4, -6); scene.add(rim);
+const bladeLight = new THREE.PointLight(0x9cc8ff, 0, 3.5, 2); scene.add(bladeLight);
+
+// ---------- post ----------
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.45, 0.92);
+composer.addPass(bloom);
+const vignette = new ShaderPass(VignetteShader);
+vignette.uniforms.offset.value = 0.95; vignette.uniforms.darkness.value = 1.05;
+composer.addPass(new OutputPass());
+composer.addPass(vignette);
+const smaa = new SMAAPass(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio());
+composer.addPass(smaa);
+
+// ---------- loaders ----------
+const loadMgr = new THREE.LoadingManager();
+const gltfL = new GLTFLoader(loadMgr), rgbeL = new RGBELoader(loadMgr), texL = new THREE.TextureLoader(loadMgr);
+const pmrem = new THREE.PMREMGenerator(renderer);
+
+const [hdr, heroG, demonG, gDiff, gNor, gRough] = await Promise.all([
+  rgbeL.loadAsync('assets/hdri/sky_1k.hdr'),
+  gltfL.loadAsync('assets/models/heroine.glb'),
+  gltfL.loadAsync('assets/models/demon.glb'),
+  texL.loadAsync('assets/textures/grass_diff.jpg'),
+  texL.loadAsync('assets/textures/grass_nor_gl.jpg'),
+  texL.loadAsync('assets/textures/grass_rough.jpg'),
+]);
+hdr.mapping = THREE.EquirectangularReflectionMapping;
+const envRT = pmrem.fromEquirectangular(hdr);
+scene.environment = envRT.texture;
+scene.background = hdr; scene.backgroundBlurriness = 0.04; scene.backgroundIntensity = 1.05;
+scene.environmentIntensity = 0.9;
+
+// ---------- ground ----------
+for (const t of [gDiff, gNor, gRough]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(14, 14); t.anisotropy = 8; }
+gDiff.colorSpace = THREE.SRGBColorSpace;
+const groundGeo = new THREE.CircleGeometry(60, 96);
+groundGeo.rotateX(-Math.PI / 2);
+{ // gentle undulation away from the arena
+  const p = groundGeo.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z);
+    const h = Math.max(0, r - 12) * 0.035 * (Math.sin(x * 0.35) * Math.cos(z * 0.28) + 0.6); p.setY(i, h); }
+  groundGeo.computeVertexNormals();
+}
+const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({ map: gDiff, normalMap: gNor, roughnessMap: gRough,
+  normalScale: new THREE.Vector2(1.2, 1.2), color: 0xb8c8a0, roughness: 1 }));
+ground.receiveShadow = true; scene.add(ground);
+
+// scattered rocks + grass tufts for depth
+const rockMat = new THREE.MeshStandardMaterial({ color: 0x7d7a72, roughness: 0.9, flatShading: true });
+const rnd = mulberry(7);
+for (let i = 0; i < 26; i++) {
+  const r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.12 + rnd() * 0.35, 1), rockMat);
+  const a = rnd() * Math.PI * 2, d = 4.5 + rnd() * 14;
+  r.position.set(Math.cos(a) * d, 0.05, Math.sin(a) * d - 3); if (r.position.z > 1.5 && Math.abs(r.position.x) < 4) r.position.z -= 9; r.scale.y = 0.6; r.rotation.set(rnd() * 3, rnd() * 3, 0);
+  r.castShadow = r.receiveShadow = true; scene.add(r);
+}
+{ // instanced grass blades
+  const blade = new THREE.PlaneGeometry(0.03, 0.2, 1, 3); blade.translate(0, 0.1, 0);
+  const pos = blade.attributes.position; for (let i = 0; i < pos.count; i++) { const y = pos.getY(i); pos.setX(i, pos.getX(i) * (1 - y / 0.21)); }
+  const gm = new THREE.MeshStandardMaterial({ color: 0x8aa04a, roughness: 0.85, side: THREE.DoubleSide });
+  const N = 26000, im = new THREE.InstancedMesh(blade, gm, N), m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+  const col = new THREE.Color();
+  for (let i = 0; i < N; i++) {
+    const a = rnd() * Math.PI * 2, d = 0.3 + Math.sqrt(rnd()) * 11;
+    p.set(Math.cos(a) * d, 0, Math.sin(a) * d - 1);
+    q.setFromEuler(new THREE.Euler((rnd() - .5) * .5, rnd() * 6.28, (rnd() - .5) * .5));
+    const k = 0.6 + rnd() * 0.9; s.set(k, k, k); m.compose(p, q, s); im.setMatrixAt(i, m);
+    im.setColorAt(i, col.setHSL(0.22 + rnd() * 0.05, 0.45, 0.28 + rnd() * 0.12));
+  }
+  im.receiveShadow = true; im.castShadow = false; scene.add(im);
+}
+
+// ---------- helpers ----------
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function normalize(root, height) {
+  root.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(root), h = b.max.y - b.min.y;
+  root.scale.multiplyScalar(height / h);
+}
+function clips(g) { const o = {}; for (const c of g.animations) o[c.name.split('|').pop()] = c; return o; }
+
+// ---------- heroine ----------
+const hero = heroG.scene; normalize(hero, 1.85);
+const heroRoot = new THREE.Group(); heroRoot.add(hero); scene.add(heroRoot);
+const M = {
+  cloth: new THREE.MeshPhysicalMaterial({ color: 0x1f3f9e, roughness: 0.62, sheen: 1, sheenColor: new THREE.Color(0x6f8cff), sheenRoughness: 0.5 }),
+  skin:  new THREE.MeshPhysicalMaterial({ color: 0xf2c9a8, roughness: 0.55, sheen: 0.3, sheenColor: new THREE.Color(0xffd0c0) }),
+  hair:  new THREE.MeshPhysicalMaterial({ color: 0xe8c062, roughness: 0.38, metalness: 0.05, sheen: 1, sheenColor: new THREE.Color(0xfff0b0), clearcoat: 0.3 }),
+  silver:new THREE.MeshStandardMaterial({ color: 0xd9dee6, metalness: 1, roughness: 0.22, envMapIntensity: 1.3 }),
+  gold:  new THREE.MeshStandardMaterial({ color: 0xe0b04a, metalness: 1, roughness: 0.28, envMapIntensity: 1.3 }),
+  dark:  new THREE.MeshStandardMaterial({ color: 0x2b2420, roughness: 0.6 }),
+};
+hero.traverse(o => {
+  if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
+  const n = o.material.name;
+  o.material = ({ White: M.cloth, Orange: M.cloth, Skin: M.skin, Hair_Blond: M.hair, Hair_Brown: M.hair, Brown: M.dark, Grey: M.silver })[n] || o.material;
+});
+const hb = {}; hero.traverse(o => { if (o.isBone) hb[o.name] = o; });
+hero.updateMatrixWorld(true);
+function attach(boneName, mesh, pos, rot, scl = 1) {
+  const bone = hb[boneName.replace('.', '')], ws = new THREE.Vector3(); bone.getWorldScale(ws); const invS = 1 / ws.x;
+  const g = new THREE.Group(); g.add(mesh); g.position.set(...pos).multiplyScalar(invS); if (rot) g.rotation.set(...rot);
+  g.scale.setScalar(invS * scl); mesh.traverse(o => { if (o.isMesh) { o.castShadow = true; } }); hb[boneName.replace('.', '')].add(g); return g;
+}
+// -- armor (procedural, attached to bones) --
+function cuirass() {
+  const g = new THREE.Group();
+  const pts = []; for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push(new THREE.Vector2(0.125 + Math.sin(t * Math.PI) * 0.04 - t * 0.02, t * 0.26 - 0.13)); }
+  const body = new THREE.Mesh(new THREE.LatheGeometry(pts, 28), M.silver); body.scale.set(1.12, 1, 0.9); g.add(body);
+  const trim = new THREE.Mesh(new THREE.TorusGeometry(0.128, 0.012, 8, 32), M.gold); trim.rotation.x = Math.PI / 2; trim.position.y = -0.125; trim.scale.set(1.12, 0.9, 1); g.add(trim);
+  const trim2 = trim.clone(); trim2.position.y = 0.128; trim2.scale.set(1.0, 0.82, 1); g.add(trim2);
+  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.02), new THREE.MeshStandardMaterial({ color: 0x3060ff, emissive: 0x2050ff, emissiveIntensity: 1.5, metalness: .3, roughness: .2 }));
+  gem.position.set(0, 0.02, 0.145); g.add(gem);
+  return g;
+}
+function pauldron() {
+  const g = new THREE.Group();
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.075, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), M.silver); m.scale.set(1, 0.75, 1.1); g.add(m);
+  const t = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.008, 6, 24), M.gold); t.rotation.x = Math.PI / 2; t.scale.set(1, 1.1, 1); g.add(t);
+  return g;
+}
+function skirt() {
+  const g = new THREE.Group();
+  const c = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.31, 0.5, 40, 1, true), M.cloth); c.material = M.cloth.clone(); c.material.side = THREE.DoubleSide; g.add(c);
+  const hem = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.012, 6, 40), M.gold); hem.rotation.x = Math.PI / 2; hem.position.y = -0.25; g.add(hem);
+  // faulds (armored tassets)
+  return g;
+}
+function gauntlet() { const g = new THREE.Group(); const c = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.13, 16), M.silver); g.add(c);
+  const t = new THREE.Mesh(new THREE.TorusGeometry(0.047, 0.006, 6, 18), M.gold); t.rotation.x = Math.PI / 2; t.position.y = 0.065; g.add(t); return g; }
+function greave() { const g = new THREE.Group(); const c = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.26, 16), M.silver); g.add(c);
+  const k = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 8), M.gold); k.position.set(0, 0.14, 0.03); k.scale.set(1, .8, .6); g.add(k); return g; }
+function hairband() { const t = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.012, 6, 30, Math.PI), M.cloth); return t; }
+
+// ---------- sword ----------
+const bladeMat = new THREE.MeshStandardMaterial({ color: 0xdfeaff, metalness: 1, roughness: 0.12, emissive: 0x6fa8ff, emissiveIntensity: 0.6 });
+const edgeMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.7, 0.9, 1.6), transparent: true, opacity: .9, toneMapped: false });
+const sword = new THREE.Group();
+{
+  const shape = new THREE.Shape(); shape.moveTo(-0.028, 0); shape.lineTo(0.028, 0); shape.lineTo(0.024, 0.86); shape.lineTo(0, 0.95); shape.lineTo(-0.024, 0.86); shape.closePath();
+  const bg = new THREE.ExtrudeGeometry(shape, { depth: 0.008, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 1 }); bg.translate(0, 0, -0.004);
+  const blade = new THREE.Mesh(bg, bladeMat); blade.position.y = 0.06; sword.add(blade);
+  const core = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.85, 0.024), edgeMat); core.position.y = 0.06 + 0.45; sword.add(core);
+  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.045), M.gold); guard.position.y = 0.05; sword.add(guard);
+  for (const s of [-1, 1]) { const tip = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), M.gold); tip.position.set(s * 0.115, 0.05, 0); sword.add(tip); }
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, 0.17, 10), new THREE.MeshStandardMaterial({ color: 0x1c2a66, roughness: .5 })); grip.position.y = -0.04; sword.add(grip);
+  const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.03, 14, 10), M.gold); pommel.position.y = -0.135; sword.add(pommel);
+  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.018), new THREE.MeshStandardMaterial({ color: 0x2244ff, emissive: 0x3366ff, emissiveIntensity: 2 })); gem.position.set(0, 0.05, 0.026); sword.add(gem);
+}
+const tipMarker = new THREE.Object3D(); tipMarker.position.y = 1.0; sword.add(tipMarker);
+const baseMarker = new THREE.Object3D(); baseMarker.position.y = 0.12; sword.add(baseMarker);
+
+// attach pieces (positions/rotations tuned via screenshots; bone local frames are Y-along-bone)
+const ARM = window.ARM = {
+  chest: attach('Chest', cuirass(), [0, 0.02, 0.005], [0, 0, 0]),
+  pl: attach('UpperArm.L', pauldron(), [0, 0.02, 0], [0, 0, 0]),
+  pr: attach('UpperArm.R', pauldron(), [0, 0.02, 0], [0, 0, 0]),
+  gl: attach('LowerArm.L', gauntlet(), [0, 0.13, 0], null),
+  gr: attach('LowerArm.R', gauntlet(), [0, 0.13, 0], null),
+  kl: attach('LowerLeg.L', greave(), [0, 0.16, 0], null),
+  kr: attach('LowerLeg.R', greave(), [0, 0.16, 0], null),
+  skirt: attach('Hips', skirt(), (Q.get('kp')||'0,-0.15,0').split(',').map(Number), null),
+  band: attach('Head', hairband(), [0, 0.17, 0.0], [-0.25, 0, 0]),
+  sword: attach('Wrist.R', sword, (Q.get('sp')||'0,0.07,0').split(',').map(Number), (Q.get('sr')||'0,0,1.3').split(',').map(Number)),
+};
+
+heroRoot.position.set(-1.0, 0, 0.3); heroRoot.rotation.y = Math.PI / 2 - 0.25;
+const heroMixer = new THREE.AnimationMixer(hero), HC = clips(heroG);
+const HA = {}; for (const k of ['Idle_Sword', 'Sword_Slash', 'Run', 'HitRecieve', 'Idle']) if (HC[k]) HA[k] = heroMixer.clipAction(HC[k]);
+HA.Sword_Slash.setLoop(THREE.LoopOnce); HA.Sword_Slash.clampWhenFinished = true;
+
+// ---------- demon ----------
+const demon = demonG.scene; normalize(demon, 2.1);
+const demonRoot = new THREE.Group(); demonRoot.add(demon); scene.add(demonRoot);
+const DM = {
+  hide: new THREE.MeshPhysicalMaterial({ color: 0x8e1d22, roughness: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.5, sheen: .6, sheenColor: new THREE.Color(0xff6040), emissive: 0xff0000, emissiveIntensity: 0 }),
+  black: new THREE.MeshStandardMaterial({ color: 0x1a1414, roughness: 0.45, metalness: 0.3, emissive: 0xff0000, emissiveIntensity: 0 }),
+  eye: new THREE.MeshStandardMaterial({ color: 0xffd040, emissive: 0xff9020, emissiveIntensity: 1.2 }),
+  pupil: new THREE.MeshStandardMaterial({ color: 0x100000, roughness: .3 }),
+};
+demon.traverse(o => {
+  if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
+  o.material = ({ Demon_Main: DM.hide, Black: DM.black, Eye_White: DM.eye, Eye_Black: DM.pupil })[o.material.name] || o.material;
+});
+const DEMON_HOME = new THREE.Vector3(1.25, 0, -0.1);
+demonRoot.position.copy(DEMON_HOME); demonRoot.rotation.y = -Math.PI / 2 + 0.25;
+const demonMixer = new THREE.AnimationMixer(demon), DC = clips(demonG);
+const DA = {}; for (const k of ['Idle', 'HitReact', 'Death', 'Weapon', 'Punch']) DA[k] = demonMixer.clipAction(DC[k]);
+for (const k of ['HitReact', 'Death', 'Weapon']) { DA[k].setLoop(THREE.LoopOnce); DA[k].clampWhenFinished = true; }
+const demonGlow = new THREE.PointLight(0xff3020, 0.0, 3, 2); demonGlow.position.set(0, 1.4, 0.4); demonRoot.add(demonGlow);
+
+// ---------- slash trail ----------
+const TRAIL_N = 34;
+const trailGeo = new THREE.BufferGeometry();
+const tPos = new Float32Array(TRAIL_N * 2 * 3), tA = new Float32Array(TRAIL_N * 2);
+trailGeo.setAttribute('position', new THREE.BufferAttribute(tPos, 3)); trailGeo.setAttribute('alpha', new THREE.BufferAttribute(tA, 1));
+const idx = []; for (let i = 0; i < TRAIL_N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } trailGeo.setIndex(idx);
+const trailMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false,
+  uniforms: { uColor: { value: new THREE.Color(0.9, 1.5, 3.2) }, uFade: { value: 1 } },
+  vertexShader: `attribute float alpha; varying float vA; varying float vEdge; void main(){ vA=alpha; vEdge=float(gl_VertexID%2); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader: `uniform vec3 uColor; uniform float uFade; varying float vA; varying float vEdge; void main(){ float a=vA*uFade*(0.15+0.85*vEdge*vEdge); gl_FragColor=vec4(uColor*(0.6+vEdge),a); }`,
+});
+const trail = new THREE.Mesh(trailGeo, trailMat); trail.frustumCulled = false; scene.add(trail);
+const trailHist = []; let trailActive = 0;
+const _a = new THREE.Vector3(), _b = new THREE.Vector3();
+function updateTrail(dt) {
+  tipMarker.getWorldPosition(_a); baseMarker.getWorldPosition(_b);
+  trailHist.unshift([_a.clone(), _b.clone()]); if (trailHist.length > TRAIL_N) trailHist.pop();
+  trailActive = Math.max(0, trailActive - dt);
+  trailMat.uniforms.uFade.value = Math.min(1, trailActive * 4);
+  for (let i = 0; i < TRAIL_N; i++) { const h = trailHist[Math.min(i, trailHist.length - 1)];
+    tPos.set([h[1].x, h[1].y, h[1].z], i * 6); tPos.set([h[0].x, h[0].y, h[0].z], i * 6 + 3);
+    const a = 1 - i / (TRAIL_N - 1); tA[i * 2] = a; tA[i * 2 + 1] = a; }
+  trailGeo.attributes.position.needsUpdate = true; trailGeo.attributes.alpha.needsUpdate = true;
+}
+
+// hit sparks
+const sparkN = 60, sparkGeo = new THREE.BufferGeometry(), sP = new Float32Array(sparkN * 3), sV = [];
+sparkGeo.setAttribute('position', new THREE.BufferAttribute(sP, 3));
+const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({ color: new THREE.Color(2, 1.4, 0.6), size: 0.06, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+sparks.frustumCulled = false; scene.add(sparks); let sparkLife = 0;
+function burst(at) { for (let i = 0; i < sparkN; i++) { sP.set([at.x, at.y, at.z], i * 3); sV[i] = new THREE.Vector3((Math.random() - .5) * 5, Math.random() * 4, (Math.random() - .5) * 5); } sparkLife = 0.6; }
+function updateSparks(dt) { sparkLife = Math.max(0, sparkLife - dt); sparks.material.opacity = sparkLife / 0.6;
+  for (let i = 0; i < sparkN; i++) { if (!sV[i]) continue; sV[i].y -= 9 * dt; sP[i * 3] += sV[i].x * dt; sP[i * 3 + 1] += sV[i].y * dt; sP[i * 3 + 2] += sV[i].z * dt; }
+  sparkGeo.attributes.position.needsUpdate = true; }
+
+// ---------- game state ----------
+let hp = 100, dead = false, busy = false, flash = 0;
+const hpEl = document.getElementById('hp'), lagEl = document.getElementById('hplag'), hpTxt = document.getElementById('hptxt'), winEl = document.getElementById('win');
+function setHP(v) { hp = Math.max(0, v); hpEl.style.width = hp + '%'; lagEl.style.width = hp + '%'; hpTxt.textContent = `${hp} / 100`; }
+
+let heroCur = HA.Idle_Sword, demonCur = DA.Idle;
+heroCur.play(); demonCur.play();
+function heroTo(a, fade = 0.2, ts = 1) { if (a === heroCur) return; a.reset(); a.timeScale = ts; a.enabled = true; a.setEffectiveWeight(1); a.play(); heroCur.crossFadeTo(a, fade, false); heroCur = a; }
+function demonTo(a, fade = 0.15) { if (a === demonCur) { a.reset().play(); return; } a.reset(); a.enabled = true; a.setEffectiveWeight(1); a.play(); demonCur.crossFadeTo(a, fade, false); demonCur = a; }
+const wait = s => new Promise(r => setTimeout(r, s * 1000));
+let heroMove = null; // {from,to,t,dur}
+
+async function swing() {
+  if (busy) return; busy = true;
+  heroTo(HA.Sword_Slash, 0.12, 1.25); const dur = HC.Sword_Slash.duration / 1.25;
+  await wait(dur * 0.18); trailActive = dur * 0.6;
+  await wait(dur * 0.82); heroTo(HA.Idle_Sword, 0.3); busy = false;
+}
+function hitDemon() {
+  setHP(hp - 25); flash = 1;
+  const p = new THREE.Vector3(); demonRoot.getWorldPosition(p); p.y = 1.3; p.x -= 0.3; burst(p);
+  if (hp <= 0) { dead = true; demonTo(DA.Death, 0.15); setTimeout(() => winEl.classList.add('show'), 900); }
+  else { demonTo(DA.HitReact, 0.08); setTimeout(() => { if (!dead) demonTo(DA.Idle, 0.35); }, HC ? DC.HitReact.duration * 900 : 600); }
+}
+const HERO_HOME = new THREE.Vector3(-1.0, 0, 0.3);
+function strikePos() { const d = demonRoot.position.clone(); return d.add(new THREE.Vector3(-1.15, 0, 0.15)); }
+async function attack() {
+  if (busy || dead) return; busy = true;
+  const to = strikePos(); heroTo(HA.Run, 0.15, 1.3);
+  heroMove = { from: heroRoot.position.clone(), to, t: 0, dur: Math.max(0.2, heroRoot.position.distanceTo(to) / 4.5) };
+  await wait(heroMove.dur);
+  heroTo(HA.Sword_Slash, 0.1, 1.3); const dur = HC.Sword_Slash.duration / 1.3;
+  await wait(dur * 0.15); trailActive = dur * 0.6;
+  await wait(dur * 0.3); hitDemon();
+  await wait(dur * 0.55); heroTo(HA.Idle_Sword, 0.3);
+  busy = false;
+}
+function reset() {
+  busy = false; dead = false; heroMove = null; setHP(100); winEl.classList.remove('show'); flash = 0;
+  heroRoot.position.copy(HERO_HOME); heroMixer.stopAllAction(); demonMixer.stopAllAction();
+  heroCur = HA.Idle_Sword; heroCur.reset().play(); demonCur = DA.Idle; demonCur.reset().play();
+  controls.autoRotate = false; document.getElementById('bOrbit').classList.remove('on');
+  camera.position.copy(CAM_HOME); controls.target.copy(TARGET_HOME);
+}
+document.getElementById('bSwing').onclick = swing;
+document.getElementById('bAttack').onclick = attack;
+document.getElementById('bReset').onclick = reset;
+document.getElementById('bOrbit').onclick = e => { controls.autoRotate = !controls.autoRotate; e.currentTarget.classList.toggle('on', controls.autoRotate); };
+
+// ---------- loop ----------
+const clock = new THREE.Clock();
+function step(dt) {
+  if (heroMove) { heroMove.t += dt; const k = Math.min(1, heroMove.t / heroMove.dur), e = k * k * (3 - 2 * k);
+    heroRoot.position.lerpVectors(heroMove.from, heroMove.to, e); if (k >= 1) heroMove = null; }
+  heroMixer.update(dt); demonMixer.update(dt);
+  flash = Math.max(0, flash - dt * 2.2);
+  const f = flash * flash;
+  DM.hide.emissiveIntensity = f * 2.2; DM.black.emissiveIntensity = f * 1.2; demonGlow.intensity = f * 6;
+  updateTrail(dt); updateSparks(dt);
+  sword.getWorldPosition(bladeLight.position); bladeLight.intensity = 0.15 + trailActive * 5;
+  // keep the action centred: target follows midpoint of the two fighters
+  if (!controls.autoRotate && !BENCH && !Q.get('cam')) { const mid = heroRoot.position.clone().add(demonRoot.position).multiplyScalar(0.5); mid.y = 1.05;
+    controls.target.lerp(mid, Math.min(1, dt * 2)); }
+  controls.update();
+}
+function render() { composer.render(); }
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); });
+
+document.getElementById('load').style.opacity = 0; setTimeout(() => document.getElementById('load').remove(), 700);
+
+// ---------- demo freeze / bench ----------
+function sim(seconds, fps = 60) { for (let t = 0; t < seconds; t += 1 / fps) step(1 / fps); }
+window.__try = () => { const g = ARM.sword, out = [], w1 = new THREE.Vector3(), w2 = new THREE.Vector3(), f = new THREE.Vector3(Math.sin(heroRoot.rotation.y), 0, Math.cos(heroRoot.rotation.y));
+  const H = Math.PI / 2; for (const x of [0, H, -H, Math.PI]) for (const y of [0, H, -H, Math.PI]) for (const z of [0, H, -H]) { g.rotation.set(x, y, z); scene.updateMatrixWorld(true);
+    tipMarker.getWorldPosition(w1); baseMarker.getWorldPosition(w2); const d = w1.sub(w2).normalize(); out.push([x.toFixed(2), y.toFixed(2), z.toFixed(2), d.y.toFixed(2), d.dot(f).toFixed(2)].join(',')); } return out.join('\n'); };
+window.__dbg = () => { const w = new THREE.Vector3(), r = {}; for (const n of ['Hips','Chest','WristR','Head']) { hb[n].getWorldPosition(w); r[n] = w.toArray().map(v => +v.toFixed(2)); }
+  tipMarker.getWorldPosition(w); r.tip = w.toArray().map(v => +v.toFixed(2)); baseMarker.getWorldPosition(w); r.base = w.toArray().map(v => +v.toFixed(2)); r.anim = heroCur.getClip().name; return JSON.stringify(r); };
+if (DEMO === 'idle') {
+  sim(1.2); render(); console.log('DBG', window.__dbg()); window.__ready = true; document.title += ' [ready]';
+} else if (DEMO === 'attack') {
+  // pose: heroine mid-slash at the demon, demon reacting with red flash, HP 50
+  heroRoot.position.copy(strikePos()); for (const e of [hpEl, lagEl]) e.style.transition = 'none'; setHP(50);
+  heroTo(HA.Sword_Slash, 0.0, 1.0); trailActive = 0.5;
+  const sd = HC.Sword_Slash.duration; sim(sd * 0.55);
+  demonTo(DA.HitReact, 0.0); sim(0.12); flash = 0.85; burst(new THREE.Vector3(demonRoot.position.x - 0.35, 1.35, demonRoot.position.z + 0.1)); sim(0.1);
+  trailActive = 0.4; flash = 0.8; step(1 / 60);
+  render(); window.__ready = true; document.title += ' [ready]';
+} else if (BENCH) {
+  const b = document.getElementById('bench'); b.style.display = 'block';
+  const t1 = performance.now(); step(1 / 60); render(); renderer.getContext().finish();
+  const first = performance.now() - t1, loadMs = t1 - T0;
+  const times = []; let last = performance.now(), n = 0;
+  (function f() { step(1 / 60); render(); const now = performance.now(); times.push(now - last); last = now;
+    if (++n < 60) requestAnimationFrame(f);
+    else { const avg = times.reduce((a, c) => a + c, 0) / times.length;
+      const r = { loadMs: +loadMs.toFixed(1), firstFrameMs: +first.toFixed(1), avgFrameMs: +avg.toFixed(2), fps: +(1000 / avg).toFixed(1), frames: 60 };
+      window.__bench = r; b.textContent = 'BENCH\n' + JSON.stringify(r, null, 1); console.log('BENCH', JSON.stringify(r)); document.title += ' [ready]'; window.__ready = true; } })();
+} else {
+  window.__game = { swing, attack, reset, hitDemon, get hp() { return hp; } };
+  if (DEMO === 'victory') { sim(0.5); for (let i = 0; i < 4; i++) hitDemon(); sim(2.5); }
+  renderer.setAnimationLoop(() => { step(Math.min(clock.getDelta(), 0.05)); render(); window.__ready = true; });
+}
+</script>
+</body>
+</html>
