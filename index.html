@@ -3,28 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Saber 3D v2 — 圣剑骑士 vs 恶魔</title>
+<title>Saber 3D v3 — 圣剑骑士 vs 狼人</title>
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#0d1118;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#fff}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0f16;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#fff}
   canvas{display:block}
-  #ui{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:14px;z-index:5}
-  #ui button{font:600 18px/1 inherit;font-family:inherit;padding:14px 26px;border-radius:12px;cursor:pointer;color:#f5ecd2;
-    background:linear-gradient(180deg,rgba(40,62,120,.92),rgba(18,28,62,.92));border:1px solid rgba(232,196,104,.75);
-    box-shadow:0 6px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18);letter-spacing:2px;transition:transform .12s,filter .12s}
+  #ui{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);display:flex;gap:14px;z-index:5}
+  #ui button{white-space:nowrap;font-size:18px;font-weight:600;font-family:inherit;padding:14px 26px;border-radius:12px;cursor:pointer;color:#f5ecd2;
+    background:linear-gradient(180deg,rgba(36,58,118,.9),rgba(16,26,60,.92));border:1px solid rgba(226,190,100,.8);
+    box-shadow:0 6px 22px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18);letter-spacing:2px;transition:transform .12s,filter .12s;backdrop-filter:blur(4px)}
   #ui button:hover{transform:translateY(-2px);filter:brightness(1.18)}
   #ui button.on{background:linear-gradient(180deg,#b8913a,#6f531a);color:#fff}
-  #hud{position:fixed;top:28px;left:50%;transform:translateX(-50%);width:min(560px,70vw);z-index:5;text-align:center}
+  #hud{position:fixed;top:26px;left:50%;transform:translateX(-50%);width:min(560px,70vw);z-index:5;text-align:center}
   #hud .name{font-weight:700;letter-spacing:3px;font-size:18px;text-shadow:0 2px 6px #000;margin-bottom:8px;color:#ffd9c4}
   #hpwrap{height:18px;border-radius:10px;background:rgba(0,0,0,.55);border:1px solid rgba(255,210,160,.55);overflow:hidden;position:relative;box-shadow:0 4px 16px rgba(0,0,0,.5)}
   #hplag{position:absolute;inset:0;width:100%;background:#f3d27a;transition:width .9s ease .25s}
   #hp{position:absolute;inset:0;width:100%;background:linear-gradient(180deg,#ff5a4a,#a0101a);transition:width .18s}
-  #hptxt{position:absolute;inset:0;font:700 12px/18px inherit;text-shadow:0 1px 2px #000}
+  #hptxt{position:absolute;inset:0;font-size:12px;font-weight:700;line-height:18px;text-shadow:0 1px 2px #000}
   #win{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:4;opacity:0;transition:opacity .8s}
-  #win span{font-size:min(16vw,170px);font-weight:900;letter-spacing:.15em;color:#ffe9a8;
-    text-shadow:0 0 18px rgba(255,200,80,.9),0 0 60px rgba(255,160,40,.6),0 6px 0 #6b4a10;transform:scale(.8);transition:transform .8s cubic-bezier(.2,1.6,.4,1)}
+  #win span{font-size:min(16vw,160px);font-weight:900;letter-spacing:.15em;color:#ffe9a8;
+    text-shadow:0 0 14px rgba(255,200,80,.7),0 0 46px rgba(255,160,40,.45),0 6px 0 #6b4a10;transform:scale(.8);transition:transform .8s cubic-bezier(.2,1.6,.4,1)}
   #win.show{opacity:1}#win.show span{transform:scale(1)}
-  #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0d1118;z-index:9;font-size:18px;letter-spacing:3px;transition:opacity .6s}
-  #bench{position:fixed;left:16px;top:16px;font:13px/1.5 monospace;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:8px;z-index:6;display:none;white-space:pre}
+  #load{position:fixed;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;background:#0b0f16;z-index:9;font-size:18px;letter-spacing:3px;transition:opacity .6s}
+  #dmg{position:fixed;left:0;top:0;z-index:4;pointer-events:none}
+  .dn{position:absolute;font-weight:900;font-size:34px;color:#ffe08a;text-shadow:0 2px 0 #7a2a00,0 0 12px rgba(255,120,40,.7);animation:dn 1s ease-out forwards}
+  @keyframes dn{0%{transform:translate(-50%,0) scale(.6);opacity:0}15%{transform:translate(-50%,-14px) scale(1.15);opacity:1}100%{transform:translate(-50%,-80px) scale(1);opacity:0}}
   #credit{position:fixed;right:12px;bottom:8px;font-size:11px;opacity:.55;z-index:5}
 </style>
 <script type="importmap">
@@ -32,17 +34,17 @@
 </script>
 </head>
 <body>
-<div id="load">加载中…</div>
-<div id="hud"><div class="name">深渊恶魔 · DEMON</div><div id="hpwrap"><div id="hplag"></div><div id="hp"></div><div id="hptxt">100 / 100</div></div></div>
+<div id="load"><div>加载中…</div><div id="pct" style="font-size:14px;opacity:.7">0%</div></div>
+<div id="hud"><div class="name">月下狼人 · WEREWOLF</div><div id="hpwrap"><div id="hplag"></div><div id="hp"></div><div id="hptxt">100 / 100</div></div></div>
 <div id="win"><span>胜利</span></div>
+<div id="dmg"></div>
 <div id="ui">
   <button id="bSwing">挥剑</button>
   <button id="bAttack">攻击怪兽</button>
   <button id="bReset">重置</button>
   <button id="bOrbit">旋转视角</button>
 </div>
-<div id="bench"></div>
-<div id="credit">Models: Quaternius (CC0) · HDRI/Textures: Poly Haven (CC0) · three.js (MIT)</div>
+<div id="credit">Saber-inspired fan demo · Base avatar © pixiv Inc. (VRM Public License 1.0) · Werewolf: Grab3D (CC0) · Poly Haven (CC0) · see CREDITS.md</div>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -51,378 +53,663 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
+import { MeshoptDecoder } from 'three/addons/meshopt_decoder.module.js';
+import { VRMLoaderPlugin, VRMUtils } from './vendor/three-vrm.module.min.js';
 
 const Q = new URLSearchParams(location.search);
-const DEMO = Q.get('demo');            // idle | attack
-const BENCH = Q.get('bench') === '1';
-const T0 = performance.now();
+const DEMO = Q.get('demo');
+const LOW = Q.get('low') === '1';
+const V3 = THREE.Vector3, QT = THREE.Quaternion;
 
-// ---------- renderer / scene ----------
+// ---------------- renderer ----------------
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.95;
+renderer.toneMapping = THREE.AgXToneMapping;
+renderer.toneMappingExposure = +(Q.get('exp') || 1.05);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-const FOG = new THREE.Color(0xc4d3e2);
-scene.fog = new THREE.FogExp2(FOG, 0.016);
+const FOG = new THREE.Color(0xb9c7d6);
+scene.fog = new THREE.FogExp2(FOG, 0.0045);
 
-const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.1, 400);
-const CAM_HOME = new THREE.Vector3(0.5, 1.75, 6.4);
-const TARGET_HOME = new THREE.Vector3(0.1, 1.05, 0);
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 500);
+const CAM_HOME = new V3(0.3, 1.45, 6.3), TARGET_HOME = new V3(0.1, 1.05, 0);
+if (Q.get('cam')) { const c = Q.get('cam').split(',').map(Number); CAM_HOME.set(c[0], c[1], c[2]); TARGET_HOME.set(c[3], c[4], c[5]); }
 camera.position.copy(CAM_HOME);
-if (Q.get('cam')) { const c = Q.get('cam').split(',').map(Number); CAM_HOME.set(c[0], c[1], c[2]); TARGET_HOME.set(c[3], c[4], c[5]); camera.position.copy(CAM_HOME); }
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.copy(TARGET_HOME);
-controls.enableDamping = true; controls.minDistance = 4; controls.maxDistance = 18;
-controls.maxPolarAngle = Math.PI * 0.49; controls.autoRotateSpeed = 1.2;
+controls.target.copy(TARGET_HOME); controls.enableDamping = true; controls.minDistance = 2.5; controls.maxDistance = 20;
+controls.maxPolarAngle = Math.PI * 0.495; controls.autoRotateSpeed = 1.1;
 
-// lights
-const hemi = new THREE.HemisphereLight(0xdfe9ff, 0x4a5a2a, 0.35); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff1dc, 2.6);
-sun.position.set(-6, 10, 6);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 30 });
-sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; sun.shadow.radius = 4;
-scene.add(sun);
-const rim = new THREE.DirectionalLight(0xbfd8ff, 1.4); rim.position.set(4, 4, -6); scene.add(rim);
-const bladeLight = new THREE.PointLight(0x9cc8ff, 0, 3.5, 2); scene.add(bladeLight);
+// ---------------- lights ----------------
+const hemi = new THREE.HemisphereLight(0xdde8ff, 0x3d4a2a, 0.25); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffe6c4, 3.0);
+sun.position.set(-5, 8.5, 6.5); sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
+sun.shadow.bias = -0.0002; sun.shadow.normalBias = 0.025; sun.shadow.radius = 5; sun.shadow.blurSamples = 16;
+scene.add(sun); scene.add(sun.target);
+const rim = new THREE.DirectionalLight(0xa9c8ff, 2.2); rim.position.set(3, 5, -7); scene.add(rim);
+const fill = new THREE.DirectionalLight(0xfff4e8, 0.35); fill.position.set(6, 3, 6); scene.add(fill);
+const bladeLight = new THREE.PointLight(0xffe2a0, 0, 3, 2); scene.add(bladeLight);
 
-// ---------- post ----------
+// ---------------- post ----------------
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.45, 0.92);
+let gtao = null;
+if (!LOW) {
+  gtao = new GTAOPass(scene, camera, innerWidth, innerHeight);
+  gtao.output = GTAOPass.OUTPUT.Default; gtao.blendIntensity = 0.85;
+  gtao.updateGtaoMaterial({ radius: 0.45, distanceExponent: 1.5, thickness: 1.2, scale: 1.0, samples: 16, distanceFallOff: 1.0 });
+  gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+  composer.addPass(gtao);
+}
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.32, 0.35, 1.6);
 composer.addPass(bloom);
-const vignette = new ShaderPass(VignetteShader);
-vignette.uniforms.offset.value = 0.95; vignette.uniforms.darkness.value = 1.05;
 composer.addPass(new OutputPass());
-composer.addPass(vignette);
 const smaa = new SMAAPass(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio());
 composer.addPass(smaa);
 
-// ---------- loaders ----------
-const loadMgr = new THREE.LoadingManager();
-const gltfL = new GLTFLoader(loadMgr), rgbeL = new RGBELoader(loadMgr), texL = new THREE.TextureLoader(loadMgr);
+// ---------------- load ----------------
+const mgr = new THREE.LoadingManager();
+mgr.onProgress = (u, a, b) => { document.getElementById('pct').textContent = Math.round(a / b * 100) + '%'; };
+const gltfL = new GLTFLoader(mgr); gltfL.setMeshoptDecoder(MeshoptDecoder);
+gltfL.register(p => new VRMLoaderPlugin(p));
+const texL = new THREE.TextureLoader(mgr), rgbeL = new RGBELoader(mgr);
 const pmrem = new THREE.PMREMGenerator(renderer);
-
-const [hdr, heroG, demonG, gDiff, gNor, gRough] = await Promise.all([
-  rgbeL.loadAsync('assets/hdri/sky_1k.hdr'),
-  gltfL.loadAsync('assets/models/heroine.glb'),
-  gltfL.loadAsync('assets/models/demon.glb'),
-  texL.loadAsync('assets/textures/grass_diff.jpg'),
-  texL.loadAsync('assets/textures/grass_nor_gl.jpg'),
-  texL.loadAsync('assets/textures/grass_rough.jpg'),
+const [hdr, heroG, wolfG, rockG, deadG, treeG, gD, gN, gR, mD, mN, mR] = await Promise.all([
+  rgbeL.loadAsync('assets/hdri/meadow_2k.hdr'),
+  gltfL.loadAsync('assets/models/heroine.vrm'),
+  gltfL.loadAsync('assets/models/werewolf.glb'),
+  gltfL.loadAsync('assets/models/boulder.glb'),
+  gltfL.loadAsync('assets/models/deadtree.glb'),
+  gltfL.loadAsync('assets/models/tree.glb'),
+  texL.loadAsync('assets/textures/grass_diff.jpg'), texL.loadAsync('assets/textures/grass_nor_gl.jpg'), texL.loadAsync('assets/textures/grass_rough.jpg'),
+  texL.loadAsync('assets/textures/metal_plate_diff.jpg'), texL.loadAsync('assets/textures/metal_plate_nor_gl.jpg'), texL.loadAsync('assets/textures/metal_plate_rough.jpg'),
 ]);
 hdr.mapping = THREE.EquirectangularReflectionMapping;
-const envRT = pmrem.fromEquirectangular(hdr);
-scene.environment = envRT.texture;
-scene.background = hdr; scene.backgroundBlurriness = 0.04; scene.backgroundIntensity = 1.05;
-scene.environmentIntensity = 0.9;
+scene.environment = pmrem.fromEquirectangular(hdr).texture;
+scene.environmentIntensity = 0.75;
+scene.background = hdr; scene.backgroundBlurriness = 0.03; scene.backgroundIntensity = 0.9;
+scene.backgroundRotation.y = scene.environmentRotation.y = +(Q.get('rot') || 1.2);
 
-// ---------- ground ----------
-for (const t of [gDiff, gNor, gRough]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(14, 14); t.anisotropy = 8; }
-gDiff.colorSpace = THREE.SRGBColorSpace;
-const groundGeo = new THREE.CircleGeometry(60, 96);
-groundGeo.rotateX(-Math.PI / 2);
-{ // gentle undulation away from the arena
-  const p = groundGeo.attributes.position;
-  for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z);
-    const h = Math.max(0, r - 12) * 0.035 * (Math.sin(x * 0.35) * Math.cos(z * 0.28) + 0.6); p.setY(i, h); }
-  groundGeo.computeVertexNormals();
-}
-const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({ map: gDiff, normalMap: gNor, roughnessMap: gRough,
-  normalScale: new THREE.Vector2(1.2, 1.2), color: 0xb8c8a0, roughness: 1 }));
-ground.receiveShadow = true; scene.add(ground);
-
-// scattered rocks + grass tufts for depth
-const rockMat = new THREE.MeshStandardMaterial({ color: 0x7d7a72, roughness: 0.9, flatShading: true });
-const rnd = mulberry(7);
-for (let i = 0; i < 26; i++) {
-  const r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.12 + rnd() * 0.35, 1), rockMat);
-  const a = rnd() * Math.PI * 2, d = 4.5 + rnd() * 14;
-  r.position.set(Math.cos(a) * d, 0.05, Math.sin(a) * d - 3); if (r.position.z > 1.5 && Math.abs(r.position.x) < 4) r.position.z -= 9; r.scale.y = 0.6; r.rotation.set(rnd() * 3, rnd() * 3, 0);
-  r.castShadow = r.receiveShadow = true; scene.add(r);
-}
-{ // instanced grass blades
-  const blade = new THREE.PlaneGeometry(0.03, 0.2, 1, 3); blade.translate(0, 0.1, 0);
-  const pos = blade.attributes.position; for (let i = 0; i < pos.count; i++) { const y = pos.getY(i); pos.setX(i, pos.getX(i) * (1 - y / 0.21)); }
-  const gm = new THREE.MeshStandardMaterial({ color: 0x8aa04a, roughness: 0.85, side: THREE.DoubleSide });
-  const N = 26000, im = new THREE.InstancedMesh(blade, gm, N), m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
-  const col = new THREE.Color();
-  for (let i = 0; i < N; i++) {
-    const a = rnd() * Math.PI * 2, d = 0.3 + Math.sqrt(rnd()) * 11;
-    p.set(Math.cos(a) * d, 0, Math.sin(a) * d - 1);
-    q.setFromEuler(new THREE.Euler((rnd() - .5) * .5, rnd() * 6.28, (rnd() - .5) * .5));
-    const k = 0.6 + rnd() * 0.9; s.set(k, k, k); m.compose(p, q, s); im.setMatrixAt(i, m);
-    im.setColorAt(i, col.setHSL(0.22 + rnd() * 0.05, 0.45, 0.28 + rnd() * 0.12));
-  }
-  im.receiveShadow = true; im.castShadow = false; scene.add(im);
-}
-
-// ---------- helpers ----------
+const rnd = mulberry(11);
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-function normalize(root, height) {
-  root.updateMatrixWorld(true);
-  const b = new THREE.Box3().setFromObject(root), h = b.max.y - b.min.y;
-  root.scale.multiplyScalar(height / h);
-}
-function clips(g) { const o = {}; for (const c of g.animations) o[c.name.split('|').pop()] = c; return o; }
 
-// ---------- heroine ----------
-const hero = heroG.scene; normalize(hero, 1.85);
-const heroRoot = new THREE.Group(); heroRoot.add(hero); scene.add(heroRoot);
-const M = {
-  cloth: new THREE.MeshPhysicalMaterial({ color: 0x1f3f9e, roughness: 0.62, sheen: 1, sheenColor: new THREE.Color(0x6f8cff), sheenRoughness: 0.5 }),
-  skin:  new THREE.MeshPhysicalMaterial({ color: 0xf2c9a8, roughness: 0.55, sheen: 0.3, sheenColor: new THREE.Color(0xffd0c0) }),
-  hair:  new THREE.MeshPhysicalMaterial({ color: 0xe8c062, roughness: 0.38, metalness: 0.05, sheen: 1, sheenColor: new THREE.Color(0xfff0b0), clearcoat: 0.3 }),
-  silver:new THREE.MeshStandardMaterial({ color: 0xd9dee6, metalness: 1, roughness: 0.22, envMapIntensity: 1.3 }),
-  gold:  new THREE.MeshStandardMaterial({ color: 0xe0b04a, metalness: 1, roughness: 0.28, envMapIntensity: 1.3 }),
-  dark:  new THREE.MeshStandardMaterial({ color: 0x2b2420, roughness: 0.6 }),
+// ---------------- terrain ----------------
+for (const t of [gD, gN, gR]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(22, 22); t.anisotropy = 8; }
+gD.colorSpace = THREE.SRGBColorSpace;
+const groundGeo = new THREE.PlaneGeometry(160, 160, 200, 200); groundGeo.rotateX(-Math.PI / 2);
+function groundH(x, z) { const r = Math.hypot(x, z + 2); return Math.max(0, r - 9) * 0.035 * (Math.sin(x * 0.21) * Math.cos(z * 0.17) + 0.8) + Math.max(0, r - 32) * 0.08; }
+{ const p = groundGeo.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, groundH(p.getX(i), p.getZ(i))); groundGeo.computeVertexNormals(); }
+const groundMat = new THREE.MeshStandardMaterial({ map: gD, normalMap: gN, roughnessMap: gR, normalScale: new THREE.Vector2(1.4, 1.4), color: 0xb4c48c });
+groundMat.onBeforeCompile = s => { // break tiling: blend a 0.23x-scale sample + large-scale tint
+  s.fragmentShader = s.fragmentShader.replace('#include <map_fragment>', `
+    vec4 c1 = texture2D(map, vMapUv); vec4 c2 = texture2D(map, vMapUv * 0.23 + 0.37);
+    float m = smoothstep(0.3, 0.7, sin(vMapUv.x*0.31)*cos(vMapUv.y*0.27)*0.5+0.5);
+    vec4 sampledDiffuseColor = mix(c1, c2, 0.45 + 0.25*m);
+    sampledDiffuseColor.rgb *= mix(vec3(0.82,0.95,0.62), vec3(0.95,1.0,0.7), m);
+    sampledDiffuseColor.rgb = mix(sampledDiffuseColor.rgb, vec3(0.20,0.27,0.10), smoothstep(8.0, 45.0, length(vViewPosition)) * 0.7);
+    diffuseColor *= sampledDiffuseColor;`);
 };
+const ground = new THREE.Mesh(groundGeo, groundMat); ground.receiveShadow = true; scene.add(ground);
+
+// grass: curved, tapered, wind-swayed instanced blades with root→tip gradient
+const grassUniforms = { uTime: { value: 0 } };
+function makeGrass(N, rMin, rMax, h, w, seed) {
+  const g = new THREE.PlaneGeometry(w, h, 1, 4); g.translate(0, h / 2, 0);
+  const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i) / h; p.setX(i, p.getX(i) * (1 - y * 0.92)); p.setZ(i, y * y * h * 0.35); }
+  g.computeVertexNormals();
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.75, side: THREE.DoubleSide });
+  mat.onBeforeCompile = s => {
+    s.uniforms.uTime = grassUniforms.uTime;
+    s.vertexShader = 'uniform float uTime; varying float vH;\n' + s.vertexShader.replace('#include <begin_vertex>', `
+      vec3 transformed = vec3(position); vH = uv.y;
+      vec4 wp = instanceMatrix * vec4(0.,0.,0.,1.);
+      float sw = sin(uTime*1.7 + wp.x*0.6 + wp.z*0.4) * 0.5 + sin(uTime*3.1 + wp.x*1.7) * 0.18;
+      transformed.x += sw * uv.y * uv.y * 0.09; transformed.z += sw * uv.y * uv.y * 0.05;`);
+    s.fragmentShader = 'varying float vH;\n' + s.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      diffuseColor.rgb *= mix(0.35, 1.15, vH);`);
+  };
+  const im = new THREE.InstancedMesh(g, mat, N), m = new THREE.Matrix4(), q = new QT(), sc = new V3(), pos = new V3(), col = new THREE.Color(), r = mulberry(seed);
+  let n = 0;
+  while (n < N) {
+    const a = r() * Math.PI * 2, d = rMin + Math.sqrt(r()) * (rMax - rMin);
+    const x = Math.cos(a) * d, z = Math.sin(a) * d - 1.5;
+    pos.set(x, groundH(x, z) - 0.01, z);
+    q.setFromEuler(new THREE.Euler((r() - .5) * .35, r() * 6.28, (r() - .5) * .35));
+    const k = 0.55 + r() * 0.9; sc.set(k, k * (0.7 + r() * 0.7), k); m.compose(pos, q, sc); im.setMatrixAt(n, m);
+    const dry = r() < 0.18;
+    im.setColorAt(n, dry ? col.setHSL(0.13 + r() * 0.03, 0.42, 0.42 + r() * 0.1) : col.setHSL(0.21 + r() * 0.06, 0.48 + r() * 0.2, 0.3 + r() * 0.12));
+    n++;
+  }
+  im.receiveShadow = true; im.frustumCulled = false; scene.add(im); return im;
+}
+const GRASS_N = LOW ? 30000 : 70000;
+makeGrass(GRASS_N, 0.2, 13, 0.15, 0.03, 3);
+makeGrass(LOW ? 3000 : 9000, 2.5, 16, 0.26, 0.04, 9);
+// small wildflowers
+{
+  const fg = new THREE.IcosahedronGeometry(0.018, 0), fm = new THREE.MeshStandardMaterial({ roughness: 0.6 });
+  const N = 1400, im = new THREE.InstancedMesh(fg, fm, N), m = new THREE.Matrix4(), c = new THREE.Color();
+  for (let i = 0; i < N; i++) { const a = rnd() * 6.28, d = 2 + Math.sqrt(rnd()) * 12, x = Math.cos(a) * d, z = Math.sin(a) * d - 1.5;
+    m.makeTranslation(x, groundH(x, z) + 0.12 + rnd() * 0.1, z); im.setMatrixAt(i, m);
+    im.setColorAt(i, [c.set(0xfff6d8), c.set(0xf3d34a), c.set(0xb9a6ff), c.set(0xffffff)][i % 4].clone()); }
+  scene.add(im);
+}
+// rocks, dead trunks, trees
+function prep(o, cast = true) { o.traverse(m => { if (m.isMesh) { m.castShadow = cast; m.receiveShadow = true; } }); return o; }
+const rockSpots = [[-4.2, -3.5, 0.55], [4.6, -4.4, 0.8], [-6.5, 1.5, 0.45], [6.8, 0.6, 0.6], [-2.6, -6.5, 0.9], [2.0, -8, 1.3], [-9, -6, 1.6], [9.5, -7, 1.8], [-3.1, 3.4, 0.22], [3.6, 2.8, 0.18], [0.6, -4.8, 0.3], [-5.4, -1.2, 0.25]];
+for (const [x, z, s] of rockSpots) { const r = prep(rockG.scene.clone()); r.scale.setScalar(s); r.position.set(x, groundH(x, z) - s * 0.15, z); r.rotation.y = rnd() * 6.28; scene.add(r); }
+for (const [x, z, s, ry] of [[-5.5, -5.0, 1.0, 0.4], [7.5, -3.2, 0.9, 2.2]]) { const d = prep(deadG.scene.clone()); d.scale.setScalar(s); d.position.set(x, groundH(x, z), z); d.rotation.y = ry; scene.add(d); }
+treeG.scene.traverse(m => { if (m.isMesh && m.material.map && /leav/i.test(m.material.name + m.name)) { m.material.alphaTest = 0.5; m.material.transparent = false; m.material.side = THREE.DoubleSide; } });
+for (const [x, z, s, ry] of [[-13, -16, 0.75, 0.3], [12, -19, 0.85, 1.9], [-24, -26, 0.9, 4.0], [22, -12, 0.7, 2.7], [2, -30, 1.0, 5.1]]) {
+  const t = prep(treeG.scene.clone(), true); t.scale.setScalar(s); t.position.set(x, groundH(x, z) - 0.1, z); t.rotation.y = ry; scene.add(t); }
+
+// ---------------- shared helpers ----------------
+function remapTexture(tex, fn) {
+  const img = tex.image, c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0); const d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+  for (let i = 0; i < a.length; i += 4) { const o = fn(a[i] / 255, a[i + 1] / 255, a[i + 2] / 255); a[i] = o[0] * 255; a[i + 1] = o[1] * 255; a[i + 2] = o[2] * 255; }
+  g.putImageData(d, 0, 0); const t = new THREE.CanvasTexture(c);
+  t.colorSpace = tex.colorSpace; t.flipY = tex.flipY; t.wrapS = tex.wrapS; t.wrapT = tex.wrapT; t.channel = tex.channel; t.anisotropy = 4; return t;
+}
+const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const ramp = (stops, t) => { t = Math.min(1, Math.max(0, t)); const n = stops.length - 1, i = Math.min(n - 1, Math.floor(t * n)); return lerp3(stops[i], stops[i + 1], t * n - i); };
+const lum = (r, g, b) => 0.3 * r + 0.59 * g + 0.11 * b;
+
+// ---------------- metals ----------------
+for (const t of [mD, mN, mR]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2); t.anisotropy = 8; }
+mD.colorSpace = THREE.SRGBColorSpace;
+const MAT = {
+  silver: new THREE.MeshPhysicalMaterial({ color: 0xd8dde6, metalness: 1, roughness: 0.32, roughnessMap: mR, normalMap: mN, normalScale: new THREE.Vector2(0.25, 0.25), clearcoat: 0.25, clearcoatRoughness: 0.2, envMapIntensity: 1.15 }),
+  plate: new THREE.MeshPhysicalMaterial({ color: 0xc9cfd8, metalness: 1, roughness: 0.42, roughnessMap: mR, normalMap: mN, normalScale: new THREE.Vector2(0.3, 0.3), envMapIntensity: 1.0 }),
+  gold: new THREE.MeshPhysicalMaterial({ color: 0xe2b453, metalness: 1, roughness: 0.3, roughnessMap: mR, normalMap: mN, normalScale: new THREE.Vector2(0.15, 0.15), clearcoat: 0.3, envMapIntensity: 1.3 }),
+  dress: new THREE.MeshPhysicalMaterial({ color: 0x1f3c9a, roughness: 0.68, sheen: 1, sheenRoughness: 0.45, sheenColor: new THREE.Color(0x7a96ff), side: THREE.DoubleSide }),
+  dressDark: new THREE.MeshPhysicalMaterial({ color: 0x182c70, roughness: 0.7, sheen: 1, sheenRoughness: 0.5, sheenColor: new THREE.Color(0x5a76e0) }),
+  ribbon: new THREE.MeshPhysicalMaterial({ color: 0x2140b0, roughness: 0.45, sheen: 1, sheenColor: new THREE.Color(0x9fb4ff), side: THREE.DoubleSide }),
+  blade: new THREE.MeshPhysicalMaterial({ color: 0xf2f5fa, metalness: 1, roughness: 0.14, roughnessMap: mR, normalMap: mN, normalScale: new THREE.Vector2(0.12, 0.12), clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.6, emissive: 0xffd88a, emissiveIntensity: 0.0 }),
+  grip: new THREE.MeshPhysicalMaterial({ color: 0x1b2f80, roughness: 0.5, sheen: 0.6, sheenColor: new THREE.Color(0x6080ff) }),
+  gem: new THREE.MeshPhysicalMaterial({ color: 0x2250ff, metalness: 0, roughness: 0.05, transmission: 0.3, emissive: 0x1a3cff, emissiveIntensity: 0.6, clearcoat: 1 }),
+};
+
+// =============== HEROINE (VRM) ===============
+const vrm = heroG.userData.vrm;
+VRMUtils.removeUnnecessaryVertices(heroG.scene);
+const hero = vrm.scene;
+const heroRoot = new THREE.Group(); heroRoot.add(hero); scene.add(heroRoot);
+const NB = n => vrm.humanoid.getNormalizedBoneNode(n), RB = n => vrm.humanoid.getRawBoneNode(n);
+hero.updateMatrixWorld(true);
+const wp = o => o.getWorldPosition(new V3());
+
+// recolour textures: chestnut hair → Saber gold, brown iris → green, white top → royal blue
+const HAIR = [[0.42, 0.28, 0.10], [0.80, 0.60, 0.26], [0.97, 0.84, 0.48], [1.0, 0.96, 0.80]];
+const hairTexCache = new Map();
+let hairMat = null;
+const meshes = {};
 hero.traverse(o => {
   if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
-  const n = o.material.name;
-  o.material = ({ White: M.cloth, Orange: M.cloth, Skin: M.skin, Hair_Blond: M.hair, Hair_Brown: M.hair, Brown: M.dark, Grey: M.silver })[n] || o.material;
+  const mats = Array.isArray(o.material) ? o.material : [o.material];
+  for (const m of mats) {
+    const n = m.name || '';
+    (meshes[n.replace(/ \(Outline\)/, '')] ||= []).push(o);
+    if (/HAIR/.test(n)) {
+      if (m.map) { if (!hairTexCache.has(m.map)) hairTexCache.set(m.map, remapTexture(m.map, (r, g, b) => ramp(HAIR, (lum(r, g, b) - 0.06) / 0.62))); m.map = hairTexCache.get(m.map); }
+      if (m.shadeMultiplyTexture) { if (!hairTexCache.has(m.shadeMultiplyTexture)) hairTexCache.set(m.shadeMultiplyTexture, remapTexture(m.shadeMultiplyTexture, (r, g, b) => ramp(HAIR, (lum(r, g, b) - 0.06) / 0.62))); m.shadeMultiplyTexture = hairTexCache.get(m.shadeMultiplyTexture); }
+      if (m.color) m.color.set(0xffffff); if (m.shadeColorFactor) m.shadeColorFactor.setRGB(0.78, 0.6, 0.36);
+      if (m.outlineColorFactor) m.outlineColorFactor.setRGB(0.35, 0.22, 0.08);
+      if (!/Outline/.test(n) && /Hair_00/.test(n)) hairMat = m;
+    } else if (/EyeIris/.test(n) && m.map) {
+      m.map = remapTexture(m.map, (r, g, b) => { const l = lum(r, g, b); return ramp([[0.05, 0.16, 0.12], [0.18, 0.5, 0.36], [0.5, 0.86, 0.62], [0.9, 1, 0.9]], (l - 0.05) / 0.6); });
+    } else if (/Tops|Bottoms/.test(n)) {
+      o.visible = false;
+    } else if (/Shoes/.test(n)) {
+      if (m.color) m.color.setRGB(0.55, 0.58, 0.62); if (m.shadeColorFactor) m.shadeColorFactor.setRGB(0.2, 0.22, 0.26);
+    }
+  }
 });
-const hb = {}; hero.traverse(o => { if (o.isBone) hb[o.name] = o; });
-hero.updateMatrixWorld(true);
-function attach(boneName, mesh, pos, rot, scl = 1) {
-  const bone = hb[boneName.replace('.', '')], ws = new THREE.Vector3(); bone.getWorldScale(ws); const invS = 1 / ws.x;
-  const g = new THREE.Group(); g.add(mesh); g.position.set(...pos).multiplyScalar(invS); if (rot) g.rotation.set(...rot);
-  g.scale.setScalar(invS * scl); mesh.traverse(o => { if (o.isMesh) { o.castShadow = true; } }); hb[boneName.replace('.', '')].add(g); return g;
-}
-// -- armor (procedural, attached to bones) --
-function cuirass() {
-  const g = new THREE.Group();
-  const pts = []; for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push(new THREE.Vector2(0.125 + Math.sin(t * Math.PI) * 0.04 - t * 0.02, t * 0.26 - 0.13)); }
-  const body = new THREE.Mesh(new THREE.LatheGeometry(pts, 28), M.silver); body.scale.set(1.12, 1, 0.9); g.add(body);
-  const trim = new THREE.Mesh(new THREE.TorusGeometry(0.128, 0.012, 8, 32), M.gold); trim.rotation.x = Math.PI / 2; trim.position.y = -0.125; trim.scale.set(1.12, 0.9, 1); g.add(trim);
-  const trim2 = trim.clone(); trim2.position.y = 0.128; trim2.scale.set(1.0, 0.82, 1); g.add(trim2);
-  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.02), new THREE.MeshStandardMaterial({ color: 0x3060ff, emissive: 0x2050ff, emissiveIntensity: 1.5, metalness: .3, roughness: .2 }));
-  gem.position.set(0, 0.02, 0.145); g.add(gem);
-  return g;
-}
-function pauldron() {
-  const g = new THREE.Group();
-  const m = new THREE.Mesh(new THREE.SphereGeometry(0.075, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), M.silver); m.scale.set(1, 0.75, 1.1); g.add(m);
-  const t = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.008, 6, 24), M.gold); t.rotation.x = Math.PI / 2; t.scale.set(1, 1.1, 1); g.add(t);
-  return g;
-}
-function skirt() {
-  const g = new THREE.Group();
-  const c = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.31, 0.5, 40, 1, true), M.cloth); c.material = M.cloth.clone(); c.material.side = THREE.DoubleSide; g.add(c);
-  const hem = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.012, 6, 40), M.gold); hem.rotation.x = Math.PI / 2; hem.position.y = -0.25; g.add(hem);
-  // faulds (armored tassets)
-  return g;
-}
-function gauntlet() { const g = new THREE.Group(); const c = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.13, 16), M.silver); g.add(c);
-  const t = new THREE.Mesh(new THREE.TorusGeometry(0.047, 0.006, 6, 18), M.gold); t.rotation.x = Math.PI / 2; t.position.y = 0.065; g.add(t); return g; }
-function greave() { const g = new THREE.Group(); const c = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.26, 16), M.silver); g.add(c);
-  const k = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 8), M.gold); k.position.set(0, 0.14, 0.03); k.scale.set(1, .8, .6); g.add(k); return g; }
-function hairband() { const t = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.012, 6, 30, Math.PI), M.cloth); return t; }
+hairMat ||= MAT.gold;
 
-// ---------- sword ----------
-const bladeMat = new THREE.MeshStandardMaterial({ color: 0xdfeaff, metalness: 1, roughness: 0.12, emissive: 0x6fa8ff, emissiveIntensity: 0.6 });
-const edgeMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.7, 0.9, 1.6), transparent: true, opacity: .9, toneMapped: false });
-const sword = new THREE.Group();
+// measure the body surface (bind pose, world space) to fit armour
+const bodyVerts = [];
+hero.traverse(o => { if (!o.isSkinnedMesh) return; const ms = Array.isArray(o.material) ? o.material : [o.material];
+  if (!ms.some(m => /Body_00_SKIN/.test(m.name))) return;
+  const p = o.geometry.attributes.position, v = new V3(); o.updateWorldMatrix(true, false);
+  for (let i = 0; i < p.count; i++) bodyVerts.push(v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld).clone()); });
+function slice(axis, val, tol, filt) {
+  const [a1, a2] = axis === 'y' ? ['x', 'z'] : axis === 'x' ? ['y', 'z'] : ['x', 'y'];
+  let mn1 = 1e9, mx1 = -1e9, mn2 = 1e9, mx2 = -1e9, n = 0;
+  for (const v of bodyVerts) if (Math.abs(v[axis] - val) < tol && (!filt || filt(v))) { n++; mn1 = Math.min(mn1, v[a1]); mx1 = Math.max(mx1, v[a1]); mn2 = Math.min(mn2, v[a2]); mx2 = Math.max(mx2, v[a2]); }
+  return n ? { c1: (mn1 + mx1) / 2, c2: (mn2 + mx2) / 2, r1: (mx1 - mn1) / 2, r2: (mx2 - mn2) / 2 } : null;
+}
+// loft a closed tube through measured ellipses; rings: [{t, c1, c2, r1, r2}] along axis
+function loft(axis, rings, seg = 40, arc = [0, Math.PI * 2], closed = true) {
+  const pos = [], uv = [], idx = [], S = closed ? seg : seg;
+  rings.forEach((r, j) => { for (let i = 0; i <= S; i++) { const a = arc[0] + (arc[1] - arc[0]) * i / S, ca = Math.cos(a), sa = Math.sin(a);
+    const p1 = r.c1 + ca * r.r1 * (r.f ? r.f(a) : 1), p2 = r.c2 + sa * r.r2 * (r.f ? r.f(a) : 1);
+    if (axis === 'y') pos.push(p1, r.t, p2); else if (axis === 'x') pos.push(r.t, p1, p2); else pos.push(p1, p2, r.t);
+    uv.push(i / S, j / (rings.length - 1)); } });
+  for (let j = 0; j < rings.length - 1; j++) for (let i = 0; i < S; i++) { const a = j * (S + 1) + i, b = a + S + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  // make sure faces point outward regardless of loft direction / axis handedness
+  const mi = Math.floor(rings.length / 2) * (S + 1) + Math.floor(S / 4), r = rings[Math.floor(rings.length / 2)];
+  const pv = new V3().fromBufferAttribute(g.attributes.position, mi), nv = new V3().fromBufferAttribute(g.attributes.normal, mi);
+  const c = axis === 'y' ? new V3(r.c1, r.t, r.c2) : axis === 'x' ? new V3(r.t, r.c1, r.c2) : new V3(r.c1, r.c2, r.t);
+  if (nv.dot(pv.sub(c)) < 0) { for (let i = 0; i < idx.length; i += 3) { const t = idx[i + 1]; idx[i + 1] = idx[i + 2]; idx[i + 2] = t; } g.setIndex(idx); g.computeVertexNormals(); }
+  return g;
+}
+function fitRings(axis, from, to, n, margin, filt, minR = 0) {
+  const out = []; for (let i = 0; i < n; i++) { const t = from + (to - from) * i / (n - 1); const s = slice(axis, t, 0.012, filt);
+    if (s) out.push({ t, c1: s.c1, c2: s.c2, r1: Math.max(minR, s.r1 + margin), r2: Math.max(minR, s.r2 + margin) }); } return out;
+}
+function smoothRings(r, k = 1) { return r.map((x, i) => { const a = r[Math.max(0, i - k)], b = r[Math.min(r.length - 1, i + k)];
+  return { ...x, r1: (a.r1 + x.r1 * 2 + b.r1) / 4, r2: (a.r2 + x.r2 * 2 + b.r2) / 4, c1: (a.c1 + x.c1 * 2 + b.c1) / 4, c2: (a.c2 + x.c2 * 2 + b.c2) / 4 }; }); }
+const attachTo = (bone, obj) => { scene.add(obj); obj.updateMatrixWorld(true); bone.attach(obj); obj.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); return obj; };
+const P = {}; for (const b of ['hips', 'spine', 'chest', 'upperChest', 'neck', 'head', 'leftUpperArm', 'rightUpperArm', 'leftLowerArm', 'rightLowerArm', 'leftHand', 'rightHand', 'leftUpperLeg', 'rightUpperLeg', 'leftLowerLeg', 'rightLowerLeg', 'leftFoot', 'rightFoot', 'leftShoulder', 'rightShoulder']) P[b] = wp(RB(b));
+const HEIGHT = (() => { let mx = 0; for (const v of bodyVerts) mx = Math.max(mx, v.y); return mx; })();
+const torsoF = v => Math.abs(v.x) < (P.leftUpperArm.x - 0.01);
+
+// --- dress bodice (blue) under the cuirass, from waist to neck
 {
-  const shape = new THREE.Shape(); shape.moveTo(-0.028, 0); shape.lineTo(0.028, 0); shape.lineTo(0.024, 0.86); shape.lineTo(0, 0.95); shape.lineTo(-0.024, 0.86); shape.closePath();
-  const bg = new THREE.ExtrudeGeometry(shape, { depth: 0.008, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 1 }); bg.translate(0, 0, -0.004);
-  const blade = new THREE.Mesh(bg, bladeMat); blade.position.y = 0.06; sword.add(blade);
-  const core = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.85, 0.024), edgeMat); core.position.y = 0.06 + 0.45; sword.add(core);
-  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.045), M.gold); guard.position.y = 0.05; sword.add(guard);
-  for (const s of [-1, 1]) { const tip = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), M.gold); tip.position.set(s * 0.115, 0.05, 0); sword.add(tip); }
-  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, 0.17, 10), new THREE.MeshStandardMaterial({ color: 0x1c2a66, roughness: .5 })); grip.position.y = -0.04; sword.add(grip);
-  const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.03, 14, 10), M.gold); pommel.position.y = -0.135; sword.add(pommel);
-  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.018), new THREE.MeshStandardMaterial({ color: 0x2244ff, emissive: 0x3366ff, emissiveIntensity: 2 })); gem.position.set(0, 0.05, 0.026); sword.add(gem);
+  const r = smoothRings(fitRings('y', P.hips.y + 0.02, P.neck.y - 0.01, 12, 0.006, torsoF));
+  attachTo(RB('upperChest'), new THREE.Mesh(loft('y', r, 48), MAT.dressDark));
+  // high collar
+  const c = slice('y', P.neck.y + 0.02, 0.015, v => Math.abs(v.x) < 0.07) || { c1: 0, c2: P.neck.z, r1: 0.045, r2: 0.045 };
+  const col = loft('y', [{ t: P.neck.y - 0.03, c1: c.c1, c2: c.c2, r1: c.r1 + 0.03, r2: c.r2 + 0.03 }, { t: P.neck.y + 0.035, c1: c.c1, c2: c.c2, r1: c.r1 + 0.012, r2: c.r2 + 0.012 }], 32);
+  attachTo(RB('neck'), new THREE.Mesh(col, MAT.dress));
 }
-const tipMarker = new THREE.Object3D(); tipMarker.position.y = 1.0; sword.add(tipMarker);
-const baseMarker = new THREE.Object3D(); baseMarker.position.y = 0.12; sword.add(baseMarker);
+// --- cuirass: silver plate fitted over chest, open at the top, with gold trims
+{
+  const y0 = P.spine.y + 0.03, y1 = P.upperChest.y + 0.075;
+  const r = smoothRings(fitRings('y', y0, y1, 12, 0.02, torsoF));
+  const front = loft('y', r, 48, [0.15 * Math.PI, 0.85 * Math.PI]); // front 70% wrap (+z side)
+  const g = new THREE.Group(); g.add(new THREE.Mesh(front, MAT.silver));
+  const back = loft('y', r.map(x => ({ ...x, r1: x.r1 - 0.002, r2: x.r2 - 0.002 })), 48, [1.1 * Math.PI, 1.9 * Math.PI]); g.add(new THREE.Mesh(back, MAT.silver));
+  for (const rr of [r[0], r[r.length - 1]]) { const t = loft('y', [{ ...rr, t: rr.t - 0.008, r1: rr.r1 + 0.004, r2: rr.r2 + 0.004 }, { ...rr, t: rr.t + 0.008, r1: rr.r1 + 0.004, r2: rr.r2 + 0.004 }], 48, [0.15 * Math.PI, 0.85 * Math.PI]); g.add(new THREE.Mesh(t, MAT.gold)); }
+  // centre ridge + gold medallion
+  const mid = r[Math.floor(r.length * 0.45)];
+  const ridge = new THREE.Mesh(new THREE.CapsuleGeometry(0.006, y1 - y0 - 0.04, 4, 8), MAT.gold); ridge.position.set(mid.c1, (y0 + y1) / 2, mid.c2 + mid.r2 + 0.002); g.add(ridge);
+  attachTo(RB('chest'), g);
+}
+// --- faulds (armoured tassets) on the hips + long flared blue skirt with pleats
+{
+  const w = slice('y', P.hips.y + 0.02, 0.02, torsoF), y0 = P.hips.y + 0.04, yb = 0.16;
+  const pleat = a => 1 + 0.035 * Math.sin(a * 14);
+  const rings = []; for (let i = 0; i <= 10; i++) { const k = i / 10, yy = y0 + (yb - y0) * k, fl = Math.pow(k, 0.8);
+    const bs = slice('y', yy, 0.015, v => Math.abs(v.x) < 0.2) || { r1: 0, r2: 0 };
+    rings.push({ t: yy, c1: w.c1, c2: w.c2 + 0.02 * fl, r1: Math.max(w.r1 + 0.03 + fl * 0.26, bs.r1 + 0.05), r2: Math.max(w.r2 + 0.03 + fl * 0.27, bs.r2 + 0.06), f: a => 1 + (0.012 + 0.05 * k) * Math.sin(a * 14 + k * 0.6) }); }
+  const sk = new THREE.Group(); sk.add(new THREE.Mesh(loft('y', rings, 112), MAT.dress));
+  const hem = rings[rings.length - 1]; const hg = loft('y', [{ ...hem, t: hem.t + 0.03 }, { ...hem, t: hem.t }], 112); sk.add(new THREE.Mesh(hg, MAT.gold));
+  // tassets: 3 overlapping curved silver plates per side/front
+  const tas = (a0, a1, len, y) => { const rr = []; for (let i = 0; i <= 4; i++) { const k = i / 4; rr.push({ t: y - len * k, c1: w.c1, c2: w.c2, r1: w.r1 + 0.045 + k * 0.06, r2: w.r2 + 0.045 + k * 0.06 }); }
+    const m = new THREE.Mesh(loft('y', rr, 16, [a0, a1]), MAT.plate); const tr = new THREE.Mesh(loft('y', [{ ...rr[4], t: rr[4].t + 0.012, r1: rr[4].r1 + 0.003, r2: rr[4].r2 + 0.003 }, { ...rr[4], r1: rr[4].r1 + 0.003, r2: rr[4].r2 + 0.003 }], 16, [a0, a1]), MAT.gold); const gg = new THREE.Group(); gg.add(m, tr); return gg; };
+  sk.add(tas(0.28 * Math.PI, 0.72 * Math.PI, 0.17, y0 + 0.02));
+  sk.add(tas(-0.2 * Math.PI, 0.22 * Math.PI, 0.15, y0 + 0.01));
+  sk.add(tas(0.78 * Math.PI, 1.2 * Math.PI, 0.15, y0 + 0.01));
+  const belt = loft('y', [{ t: y0 + 0.035, c1: w.c1, c2: w.c2, r1: w.r1 + 0.035, r2: w.r2 + 0.035 }, { t: y0 - 0.005, c1: w.c1, c2: w.c2, r1: w.r1 + 0.04, r2: w.r2 + 0.04 }], 48);
+  sk.add(new THREE.Mesh(belt, MAT.gold));
+  attachTo(RB('hips'), sk);
+}
+// --- sleeves, pauldrons, gauntlets (T-pose: arms lie along ±x)
+for (const s of ['left', 'right']) {
+  const sg = s === 'left' ? 1 : -1, ua = P[s + 'UpperArm'], la = P[s + 'LowerArm'], hd = P[s + 'Hand'];
+  const armF = v => v.y > ua.y - 0.12 && v.y < ua.y + 0.12 && Math.sign(v.x) === sg;
+  const sl = smoothRings(fitRings('x', ua.x + sg * 0.02, la.x - sg * 0.01, 7, 0.007, armF));
+  attachTo(RB(s + 'UpperArm'), new THREE.Mesh(loft('x', sl, 28), MAT.dressDark));
+  // pauldron: layered domes over the shoulder
+  const pg = new THREE.Group();
+  for (let i = 0; i < 2; i++) { const d = new THREE.Mesh(new THREE.SphereGeometry(0.068 - i * 0.01, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.45), MAT.silver);
+    d.scale.set(1.0, 0.42, 1.08); d.position.set(sg * (0.01 + i * 0.03), -i * 0.022, 0); d.rotation.z = -sg * (0.35 + i * 0.12); pg.add(d);
+    const t = new THREE.Mesh(new THREE.TorusGeometry(0.075 - i * 0.008, 0.0045, 6, 40), MAT.gold); t.rotation.x = Math.PI / 2; t.position.copy(d.position); t.position.y -= Math.sin(Math.PI * 0.42) * 0.0; t.scale.set(1.05 * Math.sin(Math.PI * .42), 1.05 * Math.sin(Math.PI * .42), 1); t.position.y += Math.cos(Math.PI * 0.42) * 0.075 * 0.7; t.rotation.y = 0; t.rotation.order = 'ZXY'; t.rotation.z = -sg * (0.35 + i * 0.12); if (i === 0) pg.add(t); }
+  pg.position.set(ua.x + sg * 0.035, ua.y + 0.035, ua.z); attachTo(RB(s + 'UpperArm'), pg);
+  // gauntlet: fitted forearm plate flaring at the elbow + hand cover
+  const ga = smoothRings(fitRings('x', la.x + sg * 0.03, hd.x - sg * 0.005, 8, 0.012, armF)).map((r, i, A) => ({ ...r, r1: r.r1 + 0.012 * (1 - i / (A.length - 1)) ** 2, r2: r.r2 + 0.012 * (1 - i / (A.length - 1)) ** 2 }));
+  const gg = new THREE.Group(); gg.add(new THREE.Mesh(loft('x', ga, 32), MAT.silver));
+  const g0 = ga[0]; gg.add(new THREE.Mesh(loft('x', [{ ...g0, t: g0.t, r1: g0.r1 + 0.004, r2: g0.r2 + 0.004 }, { ...g0, t: g0.t + sg * 0.012, r1: g0.r1 + 0.004, r2: g0.r2 + 0.004 }], 32), MAT.gold));
+  attachTo(RB(s + 'LowerArm'), gg);
+  const hc = new THREE.Mesh(new THREE.SphereGeometry(0.05, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), MAT.silver); hc.scale.set(1.1, 0.45, 0.85); hc.position.set(hd.x + sg * 0.035, hd.y + 0.012, hd.z); 
+}
+// --- greaves + sabatons
+for (const s of ['left', 'right']) {
+  const sg = s === 'left' ? 1 : -1, kn = P[s + 'LowerLeg'], ft = P[s + 'Foot'];
+  const legF = v => Math.sign(v.x) === sg && Math.abs(v.x) < 0.2;
+  const gr = smoothRings(fitRings('y', kn.y + 0.02, ft.y + 0.03, 9, 0.014, legF)).map((r, i) => ({ ...r, r2: r.r2 + (i === 0 ? 0.01 : 0) }));
+  const g = new THREE.Group(); g.add(new THREE.Mesh(loft('y', gr, 32), MAT.silver));
+  const kc = new THREE.Mesh(new THREE.SphereGeometry(0.055, 24, 12), MAT.silver); kc.scale.set(0.95, 0.85, 0.6); kc.position.set(gr[0].c1, kn.y + 0.01, gr[0].c2 + gr[0].r2 * 0.75); g.add(kc);
+  const kt = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.006, 6, 30), MAT.gold); kt.position.copy(kc.position); kt.position.z += 0.012; g.add(kt);
+  attachTo(RB(s + 'LowerLeg'), g);
+  const sb = new THREE.Mesh(new THREE.SphereGeometry(0.06, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), MAT.silver); sb.scale.set(0.85, 0.8, 1.9); sb.position.set(ft.x, 0.02, ft.z + 0.045); attachTo(RB(s + 'Foot'), sb);
+}
+// --- hair: pull the long back hair up into Saber's braided bun, add bun, braid, ribbon and ahoge
+{
+  const head = RB('head'), hp = P.head;
+  const bunC = new V3(hp.x, hp.y + 0.045, hp.z - 0.135);
+  hero.traverse(o => {
+    if (!o.isSkinnedMesh) return; const ms = Array.isArray(o.material) ? o.material : [o.material]; if (!ms.some(m => /HAIR/.test(m.name))) return;
+    const isBackMesh = ms.some(m => /HairBack/.test(m.name));
+    const g = o.geometry, p = g.attributes.position, si = g.attributes.skinIndex, sw = g.attributes.skinWeight;
+    const hi = o.skeleton.bones.indexOf(head), inv = o.matrixWorld.clone().invert(), v = new V3();
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld);
+      if (hi >= 0) { si.setXYZW(i, hi, 0, 0, 0); sw.setXYZW(i, 1, 0, 0, 0); }
+      const isBack = isBackMesh || v.z < hp.z - 0.035;
+      const cut = isBack ? hp.y + 0.03 : hp.y - 0.045;
+      if (v.y >= cut) continue;
+      const k = Math.min(1, (cut - v.y) / 0.12);
+      const sideK = isBack ? 1 : 0.55 * k;             // side locks keep some length
+      const tgt = new V3(v.x * (isBack ? 0.55 : 0.92), cut - 0.02 * k, v.z);
+      if (isBack) tgt.lerp(bunC.clone().add(v.clone().sub(bunC).setLength(0.045 + 0.02 * (1 - k))), k);
+      else tgt.y = cut - 0.035 * Math.sqrt(k);
+      v.lerp(tgt, isBack ? 1 : sideK).applyMatrix4(inv); p.setXYZ(i, v.x, v.y, v.z);
+    }
+    p.needsUpdate = si.needsUpdate = sw.needsUpdate = true; g.computeVertexNormals();
+  });
+  if (vrm.springBoneManager) vrm.springBoneManager.joints?.clear?.();
+  const hm = hairMat.clone ? hairMat.clone() : hairMat;
+  const grp = new THREE.Group();
+  const bun = new THREE.Mesh(new THREE.SphereGeometry(0.068, 32, 20), hm); bun.scale.set(1.1, 0.95, 0.8); bun.position.copy(bunC); grp.add(bun);
+  // braid: twisted strands wound around the bun
+  for (let s = 0; s < 3; s++) { const pts = []; for (let i = 0; i <= 64; i++) { const a = i / 64 * Math.PI * 2, ph = a * 6 + s * 2.09;
+      pts.push(new V3(bunC.x + Math.cos(a) * (0.07 + 0.009 * Math.cos(ph)), bunC.y + Math.sin(a) * 0.058 + 0.009 * Math.sin(ph), bunC.z - 0.03 + 0.012 * Math.sin(ph))); }
+    grp.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 160, 0.014, 8, true), hm)); }
+  // ribbon (blue bow below the bun)
+  const bow = new THREE.Group();
+  for (const sx of [-1, 1]) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.03, 16, 8), MAT.ribbon); l.scale.set(1.3, 0.55, 0.25); l.position.set(sx * 0.035, 0, 0); l.rotation.z = sx * 0.25; bow.add(l);
+    const tail = new THREE.Mesh(new THREE.PlaneGeometry(0.022, 0.07), MAT.ribbon); tail.position.set(sx * 0.014, -0.04, -0.004); tail.rotation.z = sx * 0.2; bow.add(tail); }
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(0.012, 12, 8), MAT.ribbon); bow.add(knot);
+  bow.position.set(bunC.x, bunC.y - 0.05, bunC.z - 0.035); grp.add(bow);
+  // ahoge: one springy strand standing up from the crown
+  const top = new V3(hp.x, HEIGHT - 0.005, hp.z + 0.02);
+  const ah = new THREE.CatmullRomCurve3([top, top.clone().add(new V3(0.005, 0.05, 0.02)), top.clone().add(new V3(0.0, 0.085, -0.01)), top.clone().add(new V3(-0.01, 0.07, -0.05))]);
+  const tg = new THREE.TubeGeometry(ah, 40, 0.006, 6, false); { const pp = tg.attributes.position, uv = tg.attributes.uv; const c = new V3(); // taper
+    for (let i = 0; i < pp.count; i++) { const t = uv.getX(i); const pt = ah.getPointAt(Math.min(1, t)); c.fromBufferAttribute(pp, i).sub(pt).multiplyScalar(1 - t * 0.85).add(pt); pp.setXYZ(i, c.x, c.y, c.z); } tg.computeVertexNormals(); }
+  grp.add(new THREE.Mesh(tg, hm));
+  attachTo(head, grp);
+}
+// face: determined look
+try { vrm.expressionManager.setValue('angry', 0.18); vrm.expressionManager.setValue('relaxed', 0.0); } catch (e) {}
 
-// attach pieces (positions/rotations tuned via screenshots; bone local frames are Y-along-bone)
-const ARM = window.ARM = {
-  chest: attach('Chest', cuirass(), [0, 0.02, 0.005], [0, 0, 0]),
-  pl: attach('UpperArm.L', pauldron(), [0, 0.02, 0], [0, 0, 0]),
-  pr: attach('UpperArm.R', pauldron(), [0, 0.02, 0], [0, 0, 0]),
-  gl: attach('LowerArm.L', gauntlet(), [0, 0.13, 0], null),
-  gr: attach('LowerArm.R', gauntlet(), [0, 0.13, 0], null),
-  kl: attach('LowerLeg.L', greave(), [0, 0.16, 0], null),
-  kr: attach('LowerLeg.R', greave(), [0, 0.16, 0], null),
-  skirt: attach('Hips', skirt(), (Q.get('kp')||'0,-0.15,0').split(',').map(Number), null),
-  band: attach('Head', hairband(), [0, 0.17, 0.0], [-0.25, 0, 0]),
-  sword: attach('Wrist.R', sword, (Q.get('sp')||'0,0.07,0').split(',').map(Number), (Q.get('sr')||'0,0,1.3').split(',').map(Number)),
+// ---------------- Excalibur ----------------
+const sword = new THREE.Group(), swordInner = new THREE.Group(); sword.add(swordInner);
+swordInner.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(new V3(0, 1, 0), new V3(0, 0, 1), new V3(1, 0, 0)));
+const BLADE_LEN = 0.9;
+{
+  // blade: diamond cross-section with a central fuller, tapering to a point
+  const seg = 40, pos = [], idx = [];
+  const prof = t => { const w = 0.03 * (t < 0.88 ? 1 - t * 0.18 : (1 - 0.88 * 0.18) * (1 - (t - 0.88) / 0.12)); return Math.max(0.0005, w); };
+  const cs = w => [[-w, 0], [-w * 0.35, 0.0055], [0, 0.0035], [w * 0.35, 0.0055], [w, 0], [w * 0.35, -0.0055], [0, -0.0035], [-w * 0.35, -0.0055]];
+  for (let i = 0; i <= seg; i++) { const t = i / seg, y = 0.06 + t * BLADE_LEN; for (const [x, z] of cs(prof(t))) pos.push(x, y, z); }
+  for (let i = 0; i < seg; i++) for (let k = 0; k < 8; k++) { const a = i * 8 + k, b = i * 8 + (k + 1) % 8, c = a + 8, d = b + 8; idx.push(a, c, b, b, c, d); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  const uv = []; for (let i = 0; i <= seg; i++) for (let k = 0; k < 8; k++) uv.push(k / 8, i / seg * 6); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  const blade = new THREE.Mesh(g, MAT.blade); swordInner.add(blade);
+  // fuller inlay (gold engraving line)
+  const ful = new THREE.Mesh(new THREE.BoxGeometry(0.006, BLADE_LEN * 0.32, 0.0075), MAT.gold); ful.position.y = 0.06 + BLADE_LEN * 0.2; swordInner.add(ful);
+  // cross-guard: gold, swept, blue enamel centre
+  const gs = new THREE.Shape(); gs.moveTo(-0.11, -0.012); gs.quadraticCurveTo(-0.06, 0.01, 0, 0.035); gs.quadraticCurveTo(0.06, 0.01, 0.11, -0.012); gs.lineTo(0.1, 0.012); gs.quadraticCurveTo(0.05, 0.03, 0, 0.06); gs.quadraticCurveTo(-0.05, 0.03, -0.1, 0.012); gs.closePath();
+  const guard = new THREE.Mesh(new THREE.ExtrudeGeometry(gs, { depth: 0.024, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.004, bevelSegments: 2, curveSegments: 16 }), MAT.gold); guard.position.set(0, 0.0, -0.012); swordInner.add(guard);
+  const enamel = new THREE.Mesh(new THREE.CircleGeometry(0.017, 24), MAT.grip); enamel.position.set(0, 0.03, 0.0165); swordInner.add(enamel);
+  const enamel2 = enamel.clone(); enamel2.rotation.y = Math.PI; enamel2.position.z = -0.0165; swordInner.add(enamel2);
+  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.009), MAT.gem); gem.position.set(0, 0.03, 0.02); swordInner.add(gem);
+  // grip with gold spiral wire, pommel
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.017, 0.19, 16), MAT.grip); grip.position.y = -0.095; swordInner.add(grip);
+  const wp2 = []; for (let i = 0; i <= 80; i++) { const t = i / 80, a = t * Math.PI * 2 * 7; wp2.push(new V3(Math.cos(a) * 0.0168, -0.005 - t * 0.18, Math.sin(a) * 0.0168)); }
+  swordInner.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(wp2), 240, 0.0018, 5), MAT.gold));
+  const pom = new THREE.Mesh(new THREE.SphereGeometry(0.026, 24, 16), MAT.gold); pom.scale.set(1, 1.15, 0.8); pom.position.y = -0.205; swordInner.add(pom);
+  const pgem = new THREE.Mesh(new THREE.OctahedronGeometry(0.008), MAT.gem); pgem.position.set(0, -0.205, 0.021); swordInner.add(pgem);
+}
+sword.traverse(m => { if (m.isMesh) { m.castShadow = true; } });
+const tipMarker = new THREE.Object3D(); tipMarker.position.y = 0.06 + BLADE_LEN; swordInner.add(tipMarker);
+const baseMarker = new THREE.Object3D(); baseMarker.position.y = 0.16; swordInner.add(baseMarker);
+// sword grip points (sword-local): right hand just below the guard, left hand below it
+const GRIP_R = new V3(0, -0.05, 0), GRIP_L = new V3(0, -0.14, 0);
+
+// --- arm IK in normalized-bone space (rest pose = T-pose, identity local rotations)
+const ARM = {};
+for (const s of ['left', 'right']) {
+  const u = NB(s + 'UpperArm'), l = NB(s + 'LowerArm'), h = NB(s + 'Hand');
+  ARM[s] = { u, l, h, a: P[s + 'LowerArm'].distanceTo(P[s + 'UpperArm']), b: P[s + 'Hand'].distanceTo(P[s + 'LowerArm']), dir: new V3(s === 'left' ? 1 : -1, 0, 0),
+    palm: new V3(s === 'left' ? 0.05 : -0.05, -0.018, 0.0) }; // grip centre relative to hand bone, model space at rest
+}
+const _q = new QT(), _q2 = new QT(), _v = new V3(), _v2 = new V3(), _m = new THREE.Matrix4();
+function basisQ(fwd, up) { const f = fwd.clone().normalize(), u = up.clone().sub(f.clone().multiplyScalar(up.dot(f))).normalize(), r = new V3().crossVectors(u, f);
+  return new QT().setFromRotationMatrix(new THREE.Matrix4().makeBasis(r, u, f)); }
+// hand frame at rest (model space): grip channel runs along +Z (fwd) for both hands, palm faces -Y
+const HAND_REST = basisQ(new V3(0, 0, 1), new V3(0, 1, 0));
+function solveArm(side, gripWorld, handWorldQ, pole) {
+  const A = ARM[side];
+  // wrist target = grip - R*palm
+  const palmW = A.palm.clone().applyQuaternion(handWorldQ);
+  const target = gripWorld.clone().sub(palmW);
+  A.u.updateWorldMatrix(true, false);
+  const s = A.u.getWorldPosition(new V3()), d = target.clone().sub(s); let L = d.length();
+  L = Math.min(L, (A.a + A.b) * 0.999); d.setLength(L);
+  const cosA = (A.a * A.a + L * L - A.b * A.b) / (2 * A.a * L), ang = Math.acos(Math.min(1, Math.max(-1, cosA)));
+  const n = d.clone().normalize(), pl = pole.clone().sub(n.clone().multiplyScalar(pole.dot(n))).normalize();
+  const elbow = s.clone().add(n.clone().multiplyScalar(Math.cos(ang) * A.a)).add(pl.multiplyScalar(Math.sin(ang) * A.a));
+  const rootQ = heroRoot.getWorldQuaternion(new QT());
+  const restDirW = A.dir.clone().applyQuaternion(rootQ);
+  const setWorld = (bone, qW) => { const pq = bone.parent.getWorldQuaternion(new QT()); bone.quaternion.copy(pq.invert().multiply(qW)); bone.updateWorldMatrix(false, false); };
+  const qU = new QT().setFromUnitVectors(restDirW, elbow.clone().sub(s).normalize()).multiply(rootQ); setWorld(A.u, qU);
+  const qL = new QT().setFromUnitVectors(restDirW, target.clone().sub(elbow).normalize()).multiply(rootQ); setWorld(A.l, qL);
+  // hand world orientation: handWorldQ is the desired world frame of the grip; convert from rest frame
+  setWorld(A.h, handWorldQ);
+}
+function curlFingers(side, k) {
+  const sg = side === 'left' ? -1 : 1;
+  for (const f of ['Index', 'Middle', 'Ring', 'Little']) for (const j of ['Proximal', 'Intermediate', 'Distal']) { const b = NB(side + f + j); if (b) b.rotation.set(0, 0, sg * k * (j === 'Proximal' ? 1.2 : 1.35)); }
+  const t1 = NB(side + 'ThumbProximal'), t2 = NB(side + 'ThumbDistal'); if (t1) t1.rotation.set(0, sg * -0.6 * k, sg * 0.3 * k); if (t2) t2.rotation.set(0, sg * -0.5 * k, 0);
+}
+
+// --- sword choreography: keyframes in hero model space (x = her left, y up, z forward)
+const K = {
+  guard:   { g: [0.03, 0.98, 0.34], b: [0.0, 0.72, 0.7], e: [0, 0, 1], lean: 0.06, twist: -0.1, crouch: 0.03 },
+  windup:  { g: [-0.17, 1.42, 0.06], b: [-0.25, 0.55, -0.8], e: [0, 1, 0], lean: -0.04, twist: 0.42, crouch: 0.02 },
+  strike:  { g: [0.16, 0.86, 0.46], b: [0.55, -0.4, 0.73], e: [0, -1, 0.3], lean: 0.2, twist: -0.42, crouch: 0.08 },
+  follow:  { g: [0.22, 0.9, 0.36], b: [0.7, -0.15, 0.45], e: [0, -1, 0], lean: 0.16, twist: -0.5, crouch: 0.07 },
+  run:     { g: [-0.08, 0.95, 0.26], b: [-0.15, 0.35, 0.92], e: [0, 0, 1], lean: 0.22, twist: 0.05, crouch: 0.05 },
+  victory: { g: [-0.05, 1.68, 0.18], b: [0.0, 1.0, 0.08], e: [0, 0, 1], lean: -0.04, twist: 0, crouch: 0.0 },
 };
+const kq = k => basisQ(new V3(...k.b), new V3(...k.e));
+for (const k of Object.values(K)) k.q = kq(k);
+let pose = { ...K.guard, gv: new V3(...K.guard.g), q: K.guard.q.clone() };
+function blendKeys(a, b, t) { const e = t * t * (3 - 2 * t);
+  return { gv: new V3(...a.g).lerp(new V3(...b.g), e), q: a.q.clone().slerp(b.q, e), lean: a.lean + (b.lean - a.lean) * e, twist: a.twist + (b.twist - a.twist) * e, crouch: a.crouch + (b.crouch - a.crouch) * e }; }
+// animation track: list of [time, keyName]
+let track = null, trackT = 0, heroState = 'idle', runPhase = 0;
+function playTrack(keys) { track = keys; trackT = 0; }
+const SLASH = [[0, 'guard'], [0.28, 'windup'], [0.44, 'strike'], [0.56, 'follow'], [0.95, 'guard']];
+function sampleTrack() {
+  if (!track) return null; const T = track[track.length - 1][0]; const t = Math.min(trackT, T);
+  for (let i = 0; i < track.length - 1; i++) if (t <= track[i + 1][0]) { const [t0, a] = track[i], [t1, b] = track[i + 1]; return blendKeys(K[a], K[b], (t - t0) / (t1 - t0)); }
+  return blendKeys(K[track[track.length - 1][1]], K[track[track.length - 1][1]], 1);
+}
+let idleT = 0, swingSpeed = 0;
+const prevTip = new V3(); let prevTipInit = false;
+function animateHero(dt) {
+  idleT += dt;
+  let p = sampleTrack();
+  if (track) { trackT += dt; if (trackT > track[track.length - 1][0] + 0.05) { const last = track[track.length - 1][1]; track = null; if (last !== 'victory') heroState = heroState === 'victory' ? 'victory' : 'idle'; } }
+  if (!p) p = blendKeys(K[heroState === 'run' ? 'run' : heroState === 'victory' ? 'victory' : 'guard'], K[heroState === 'run' ? 'run' : heroState === 'victory' ? 'victory' : 'guard'], 1);
+  pose = p;
+  const br = Math.sin(idleT * 1.6);
+  // body
+  const hips = NB('hips'), spine = NB('spine'), chest = NB('chest'), neck = NB('neck'), head = NB('head');
+  hips.position.y = P.hips.y - p.crouch - (heroState === 'run' ? Math.abs(Math.sin(runPhase)) * -0.03 : 0) + br * 0.003;
+  hips.rotation.set(0, p.twist * 0.35 + 0.18, 0);
+  spine.rotation.set(p.lean * 0.6 + br * 0.01, p.twist * 0.35, 0);
+  chest.rotation.set(p.lean * 0.4, p.twist * 0.3, 0);
+  neck.rotation.set(-p.lean * 0.4, -p.twist * 0.5 - 0.12, 0); head.rotation.set(-p.lean * 0.3, -p.twist * 0.3 - 0.1, 0);
+  // legs: fencing-like stance; run cycle when moving
+  const L = { lu: NB('leftUpperLeg'), ll: NB('leftLowerLeg'), ru: NB('rightUpperLeg'), rl: NB('rightLowerLeg'), lf: NB('leftFoot'), rf: NB('rightFoot') };
+  if (heroState === 'run') { runPhase += dt * 11; const s = Math.sin(runPhase), c = Math.cos(runPhase);
+    L.lu.rotation.set(-0.75 * s - 0.1, 0, 0.05); L.ru.rotation.set(0.75 * s - 0.1, 0, -0.05);
+    L.ll.rotation.set(0.5 + 0.6 * Math.max(0, c), 0, 0); L.rl.rotation.set(0.5 + 0.6 * Math.max(0, -c), 0, 0);
+    L.lf.rotation.set(-0.15, 0, 0); L.rf.rotation.set(-0.15, 0, 0);
+  } else { const c = p.crouch;
+    L.lu.rotation.set(-0.42 - c * 2, -0.18, 0.1); L.ll.rotation.set(0.42 + c * 4, 0, 0); L.lf.rotation.set(0.0 - c * 1.5, 0.15, 0);
+    L.ru.rotation.set(0.28 - c * 2, -0.25, -0.12); L.rl.rotation.set(0.25 + c * 4, 0, 0); L.rf.rotation.set(-0.3 - c * 1.5, 0.2, 0); }
+  // shoulders
+  NB('leftShoulder').rotation.set(0, -0.1, -0.08); NB('rightShoulder').rotation.set(0, 0.1, 0.08);
+  hero.updateMatrixWorld(true); vrm.humanoid.normalizedHumanBonesRoot?.updateMatrixWorld?.(true);
+  // sword target in world
+  const rootQ = heroRoot.getWorldQuaternion(new QT());
+  const gW = p.gv.clone().add(new V3(0, br * 0.004, 0)); heroRoot.localToWorld(gW);
+  const qW = rootQ.clone().multiply(p.q);
+  // place sword so GRIP_R sits at the grip point
+  sword.quaternion.copy(qW); sword.position.set(0, 0, 0); sword.updateMatrixWorld(true);
+  const off = swordInner.localToWorld(GRIP_R.clone()); sword.position.copy(gW).sub(off); sword.updateMatrixWorld(true);
+  const gripR = swordInner.localToWorld(GRIP_R.clone()), gripL = swordInner.localToWorld(GRIP_L.clone());
+  // hand frames: grip channel (+Z) along the blade, knuckles toward the cutting edge
+  const bl = new V3(0, 0, 1).applyQuaternion(qW), ed = new V3(0, 1, 0).applyQuaternion(qW);
+  const mk = sgn => { const x = ed.clone().multiplyScalar(sgn), y = new V3().crossVectors(bl, x); return new QT().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, bl)); };
+  const poleR = new V3(-0.6, -1, -0.3).applyQuaternion(rootQ), poleL = new V3(0.6, -1, -0.3).applyQuaternion(rootQ);
+  solveArm('right', gripR, mk(-1), poleR);
+  solveArm('left', gripL, mk(1), poleL);
+  curlFingers('left', 1); curlFingers('right', 1);
+  // blade glow follows swing speed
+  tipMarker.getWorldPosition(_v); const sp = prevTipInit ? _v.distanceTo(prevTip) / Math.max(dt, 1e-3) : 0; prevTip.copy(_v); prevTipInit = true;
+  swingSpeed += (Math.min(1, sp / 9) - swingSpeed) * Math.min(1, dt * 12);
+}
+scene.add(sword);
+heroRoot.position.set(-1.35, 0, 0.25); heroRoot.rotation.y = Math.PI / 2 - 0.3;
 
-heroRoot.position.set(-1.0, 0, 0.3); heroRoot.rotation.y = Math.PI / 2 - 0.25;
-const heroMixer = new THREE.AnimationMixer(hero), HC = clips(heroG);
-const HA = {}; for (const k of ['Idle_Sword', 'Sword_Slash', 'Run', 'HitRecieve', 'Idle']) if (HC[k]) HA[k] = heroMixer.clipAction(HC[k]);
-HA.Sword_Slash.setLoop(THREE.LoopOnce); HA.Sword_Slash.clampWhenFinished = true;
+// =============== WEREWOLF ===============
+const wolf = wolfG.scene;
+wolf.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
+  o.material.envMapIntensity = 0.7; o.material.emissive = new THREE.Color(0xc01000); o.material.emissiveIntensity = 0; } });
+wolf.updateMatrixWorld(true);
+{ const b = new THREE.Box3().setFromObject(wolf); wolf.position.y -= b.min.y; }
+const wolfRoot = new THREE.Group(); const wolfPivot = new THREE.Group(); wolfPivot.add(wolf); wolfRoot.add(wolfPivot); scene.add(wolfRoot);
+const WOLF_HOME = new V3(1.55, 0, -0.15);
+wolfRoot.position.copy(WOLF_HOME); wolfRoot.rotation.y = -Math.PI / 2 + 0.28;
+const WB = {}; wolf.traverse(o => { if (o.isBone) WB[o.name] = o; });
+const WREST = {}; for (const k in WB) WREST[k] = WB[k].quaternion.clone();
+const wolfMixer = new THREE.AnimationMixer(wolf);
+const wolfWalk = wolfMixer.clipAction(wolfG.animations.find(a => /walk/i.test(a.name)) || wolfG.animations[0]);
+function rotM(name, axis, ang) { // rotate bone about a wolf-model-space axis
+  const b = WB[name]; if (!b || !ang) return; b.parent.updateWorldMatrix(true, false);
+  const rq = wolfRoot.getWorldQuaternion(new QT()).multiply(wolfPivot.quaternion);
+  const aw = axis.clone().applyQuaternion(rq), pq = b.parent.getWorldQuaternion(new QT()).invert(); aw.applyQuaternion(pq).normalize();
+  b.quaternion.premultiply(new QT().setFromAxisAngle(aw, ang)); b.updateWorldMatrix(false, true);
+}
+const AX = new V3(1, 0, 0), AY = new V3(0, 1, 0), AZ = new V3(0, 0, 1);
+let wolfT = 0, hit = 0, dead = false, deathT = 0, flash = 0;
+function animateWolf(dt) {
+  wolfT += dt;
+  for (const k in WB) WB[k].quaternion.copy(WREST[k]);
+  const br = Math.sin(wolfT * 2.1), sway = Math.sin(wolfT * 1.05);
+  const h = hit * hit;
+  // menacing hunch, claws forward, breathing
+  rotM('Spine02', AX, 0.16 - h * 0.35 + br * 0.015); rotM('Spine01', AX, 0.1 - h * 0.25); rotM('Spine', AX, 0.08 + br * 0.02 - h * 0.15);
+  rotM('Spine02', AY, sway * 0.05); rotM('neck', AX, -0.1 + h * 0.2); rotM('Head', AX, -0.18 - h * 0.5 + Math.sin(wolfT * 3.3) * 0.03); rotM('Head', AZ, sway * 0.06 + h * 0.3);
+  rotM('LeftArm', AZ, -0.55 + br * 0.04 + h * 0.25); rotM('RightArm', AZ, 0.55 - br * 0.04 - h * 0.25);
+  rotM('LeftArm', AX, -0.45 - h * 0.3); rotM('RightArm', AX, -0.55 - h * 0.3);
+  rotM('LeftForeArm', AX, -0.55 + Math.sin(wolfT * 1.7) * 0.06); rotM('RightForeArm', AX, -0.5 + Math.sin(wolfT * 1.9 + 1) * 0.06);
+  rotM('LeftUpLeg', AX, -0.22); rotM('LeftLeg', AX, 0.3); rotM('RightUpLeg', AX, 0.1); rotM('RightLeg', AX, 0.25);
+  wolfPivot.position.y = -0.04 + br * 0.006;
+  if (dead) { deathT += dt; const k = Math.min(1, deathT / 1.1), e = k < 1 ? 1 - Math.pow(1 - k, 3) : 1;
+    wolfPivot.rotation.x = -e * 1.42; wolfPivot.position.z = -e * 0.25; wolfPivot.position.y = -0.04 + Math.sin(e * Math.PI) * 0.12;
+    rotM('LeftArm', AZ, e * 0.9); rotM('RightArm', AZ, -e * 0.9); rotM('Head', AX, e * 0.6); }
+  hit = Math.max(0, hit - dt * 2.2);
+  flash = Math.max(0, flash - dt * 2.5);
+  wolf.traverse(o => { if (o.isMesh) o.material.emissiveIntensity = flash * flash * 0.35; });
+}
 
-// ---------- demon ----------
-const demon = demonG.scene; normalize(demon, 2.1);
-const demonRoot = new THREE.Group(); demonRoot.add(demon); scene.add(demonRoot);
-const DM = {
-  hide: new THREE.MeshPhysicalMaterial({ color: 0x8e1d22, roughness: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.5, sheen: .6, sheenColor: new THREE.Color(0xff6040), emissive: 0xff0000, emissiveIntensity: 0 }),
-  black: new THREE.MeshStandardMaterial({ color: 0x1a1414, roughness: 0.45, metalness: 0.3, emissive: 0xff0000, emissiveIntensity: 0 }),
-  eye: new THREE.MeshStandardMaterial({ color: 0xffd040, emissive: 0xff9020, emissiveIntensity: 1.2 }),
-  pupil: new THREE.MeshStandardMaterial({ color: 0x100000, roughness: .3 }),
-};
-demon.traverse(o => {
-  if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
-  o.material = ({ Demon_Main: DM.hide, Black: DM.black, Eye_White: DM.eye, Eye_Black: DM.pupil })[o.material.name] || o.material;
-});
-const DEMON_HOME = new THREE.Vector3(1.25, 0, -0.1);
-demonRoot.position.copy(DEMON_HOME); demonRoot.rotation.y = -Math.PI / 2 + 0.25;
-const demonMixer = new THREE.AnimationMixer(demon), DC = clips(demonG);
-const DA = {}; for (const k of ['Idle', 'HitReact', 'Death', 'Weapon', 'Punch']) DA[k] = demonMixer.clipAction(DC[k]);
-for (const k of ['HitReact', 'Death', 'Weapon']) { DA[k].setLoop(THREE.LoopOnce); DA[k].clampWhenFinished = true; }
-const demonGlow = new THREE.PointLight(0xff3020, 0.0, 3, 2); demonGlow.position.set(0, 1.4, 0.4); demonRoot.add(demonGlow);
-
-// ---------- slash trail ----------
-const TRAIL_N = 34;
-const trailGeo = new THREE.BufferGeometry();
-const tPos = new Float32Array(TRAIL_N * 2 * 3), tA = new Float32Array(TRAIL_N * 2);
+// ---------------- slash trail + sparks ----------------
+const TRAIL_N = 14;
+const trailGeo = new THREE.BufferGeometry(); const tPos = new Float32Array(TRAIL_N * 6), tA = new Float32Array(TRAIL_N * 2);
 trailGeo.setAttribute('position', new THREE.BufferAttribute(tPos, 3)); trailGeo.setAttribute('alpha', new THREE.BufferAttribute(tA, 1));
-const idx = []; for (let i = 0; i < TRAIL_N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } trailGeo.setIndex(idx);
-const trailMat = new THREE.ShaderMaterial({
-  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false,
-  uniforms: { uColor: { value: new THREE.Color(0.9, 1.5, 3.2) }, uFade: { value: 1 } },
-  vertexShader: `attribute float alpha; varying float vA; varying float vEdge; void main(){ vA=alpha; vEdge=float(gl_VertexID%2); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-  fragmentShader: `uniform vec3 uColor; uniform float uFade; varying float vA; varying float vEdge; void main(){ float a=vA*uFade*(0.15+0.85*vEdge*vEdge); gl_FragColor=vec4(uColor*(0.6+vEdge),a); }`,
-});
+{ const idx = []; for (let i = 0; i < TRAIL_N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } trailGeo.setIndex(idx); }
+const trailMat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false,
+  uniforms: { uColor: { value: new THREE.Color(2.2, 1.9, 1.2) }, uFade: { value: 0 } },
+  vertexShader: `attribute float alpha; varying float vA; varying float vE; void main(){ vA=alpha; vE=float(gl_VertexID%2); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader: `uniform vec3 uColor; uniform float uFade; varying float vA; varying float vE; void main(){ float a=vA*vA*vA*uFade*pow(vE,3.0); gl_FragColor=vec4(uColor*a, a); }` });
 const trail = new THREE.Mesh(trailGeo, trailMat); trail.frustumCulled = false; scene.add(trail);
-const trailHist = []; let trailActive = 0;
-const _a = new THREE.Vector3(), _b = new THREE.Vector3();
-function updateTrail(dt) {
-  tipMarker.getWorldPosition(_a); baseMarker.getWorldPosition(_b);
-  trailHist.unshift([_a.clone(), _b.clone()]); if (trailHist.length > TRAIL_N) trailHist.pop();
-  trailActive = Math.max(0, trailActive - dt);
-  trailMat.uniforms.uFade.value = Math.min(1, trailActive * 4);
-  for (let i = 0; i < TRAIL_N; i++) { const h = trailHist[Math.min(i, trailHist.length - 1)];
-    tPos.set([h[1].x, h[1].y, h[1].z], i * 6); tPos.set([h[0].x, h[0].y, h[0].z], i * 6 + 3);
-    const a = 1 - i / (TRAIL_N - 1); tA[i * 2] = a; tA[i * 2 + 1] = a; }
-  trailGeo.attributes.position.needsUpdate = true; trailGeo.attributes.alpha.needsUpdate = true;
+const hist = [];
+function updateTrail() {
+  const a = tipMarker.getWorldPosition(new V3()), b = baseMarker.getWorldPosition(new V3());
+  hist.unshift([a, b]); if (hist.length > TRAIL_N) hist.pop();
+  trailMat.uniforms.uFade.value = Math.min(1, Math.max(0, swingSpeed - 0.2) * 1.8);
+  for (let i = 0; i < TRAIL_N; i++) { const h = hist[Math.min(i, hist.length - 1)]; tPos.set([h[1].x, h[1].y, h[1].z, h[0].x, h[0].y, h[0].z], i * 6); const al = 1 - i / (TRAIL_N - 1); tA[i * 2] = al; tA[i * 2 + 1] = al; }
+  trailGeo.attributes.position.needsUpdate = trailGeo.attributes.alpha.needsUpdate = true;
 }
+const SPN = 90, spGeo = new THREE.BufferGeometry(), spP = new Float32Array(SPN * 3), spV = []; spGeo.setAttribute('position', new THREE.BufferAttribute(spP, 3));
+const sparks = new THREE.Points(spGeo, new THREE.PointsMaterial({ color: new THREE.Color(2.4, 1.6, 0.7), size: 0.035, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+sparks.frustumCulled = false; scene.add(sparks); let spLife = 0;
+function burst(at) { for (let i = 0; i < SPN; i++) { spP.set([at.x, at.y, at.z], i * 3); spV[i] = new V3((Math.random() - .5) * 4, Math.random() * 3.5, (Math.random() - .5) * 4); } spLife = 0.7; }
+function updateSparks(dt) { spLife = Math.max(0, spLife - dt); sparks.material.opacity = spLife / 0.7;
+  for (let i = 0; i < SPN; i++) { if (!spV[i]) continue; spV[i].y -= 9 * dt; spP[i * 3] += spV[i].x * dt; spP[i * 3 + 1] += spV[i].y * dt; spP[i * 3 + 2] += spV[i].z * dt; } spGeo.attributes.position.needsUpdate = true; }
 
-// hit sparks
-const sparkN = 60, sparkGeo = new THREE.BufferGeometry(), sP = new Float32Array(sparkN * 3), sV = [];
-sparkGeo.setAttribute('position', new THREE.BufferAttribute(sP, 3));
-const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({ color: new THREE.Color(2, 1.4, 0.6), size: 0.06, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
-sparks.frustumCulled = false; scene.add(sparks); let sparkLife = 0;
-function burst(at) { for (let i = 0; i < sparkN; i++) { sP.set([at.x, at.y, at.z], i * 3); sV[i] = new THREE.Vector3((Math.random() - .5) * 5, Math.random() * 4, (Math.random() - .5) * 5); } sparkLife = 0.6; }
-function updateSparks(dt) { sparkLife = Math.max(0, sparkLife - dt); sparks.material.opacity = sparkLife / 0.6;
-  for (let i = 0; i < sparkN; i++) { if (!sV[i]) continue; sV[i].y -= 9 * dt; sP[i * 3] += sV[i].x * dt; sP[i * 3 + 1] += sV[i].y * dt; sP[i * 3 + 2] += sV[i].z * dt; }
-  sparkGeo.attributes.position.needsUpdate = true; }
-
-// ---------- game state ----------
-let hp = 100, dead = false, busy = false, flash = 0;
-const hpEl = document.getElementById('hp'), lagEl = document.getElementById('hplag'), hpTxt = document.getElementById('hptxt'), winEl = document.getElementById('win');
+// ---------------- game ----------------
+let hp = 100, busy = false;
+const hpEl = document.getElementById('hp'), lagEl = document.getElementById('hplag'), hpTxt = document.getElementById('hptxt'), winEl = document.getElementById('win'), dmgEl = document.getElementById('dmg');
 function setHP(v) { hp = Math.max(0, v); hpEl.style.width = hp + '%'; lagEl.style.width = hp + '%'; hpTxt.textContent = `${hp} / 100`; }
-
-let heroCur = HA.Idle_Sword, demonCur = DA.Idle;
-heroCur.play(); demonCur.play();
-function heroTo(a, fade = 0.2, ts = 1) { if (a === heroCur) return; a.reset(); a.timeScale = ts; a.enabled = true; a.setEffectiveWeight(1); a.play(); heroCur.crossFadeTo(a, fade, false); heroCur = a; }
-function demonTo(a, fade = 0.15) { if (a === demonCur) { a.reset().play(); return; } a.reset(); a.enabled = true; a.setEffectiveWeight(1); a.play(); demonCur.crossFadeTo(a, fade, false); demonCur = a; }
 const wait = s => new Promise(r => setTimeout(r, s * 1000));
-let heroMove = null; // {from,to,t,dur}
-
-async function swing() {
-  if (busy) return; busy = true;
-  heroTo(HA.Sword_Slash, 0.12, 1.25); const dur = HC.Sword_Slash.duration / 1.25;
-  await wait(dur * 0.18); trailActive = dur * 0.6;
-  await wait(dur * 0.82); heroTo(HA.Idle_Sword, 0.3); busy = false;
+function dmgNumber(n, at) { const p = at.clone().project(camera); const d = document.createElement('div'); d.className = 'dn'; d.textContent = '-' + n;
+  d.style.left = ((p.x + 1) / 2 * innerWidth) + 'px'; d.style.top = ((1 - p.y) / 2 * innerHeight) + 'px'; dmgEl.appendChild(d); setTimeout(() => d.remove(), 1100); }
+function hitWolf() {
+  if (dead) return; const dmg = 25; setHP(hp - dmg); flash = 1; hit = 1;
+  const p = wolfRoot.position.clone(); p.y = 1.35; p.x -= 0.35; p.z += 0.1; burst(p); dmgNumber(dmg, p.clone().add(new V3(0, 0.5, 0)));
+  if (hp <= 0) { dead = true; deathT = 0; setTimeout(() => { winEl.classList.add('show'); heroState = 'victory'; playTrack([[0, 'guard'], [0.6, 'victory']]); }, 900); }
 }
-function hitDemon() {
-  setHP(hp - 25); flash = 1;
-  const p = new THREE.Vector3(); demonRoot.getWorldPosition(p); p.y = 1.3; p.x -= 0.3; burst(p);
-  if (hp <= 0) { dead = true; demonTo(DA.Death, 0.15); setTimeout(() => winEl.classList.add('show'), 900); }
-  else { demonTo(DA.HitReact, 0.08); setTimeout(() => { if (!dead) demonTo(DA.Idle, 0.35); }, HC ? DC.HitReact.duration * 900 : 600); }
-}
-const HERO_HOME = new THREE.Vector3(-1.0, 0, 0.3);
-function strikePos() { const d = demonRoot.position.clone(); return d.add(new THREE.Vector3(-1.15, 0, 0.15)); }
+const HERO_HOME = new V3(-1.35, 0, 0.25);
+let heroMove = null;
+function strikePos() { return wolfRoot.position.clone().add(new V3(-1.2, 0, 0.32)); }
+async function swing() { if (busy) return; busy = true; heroState = 'idle'; playTrack(SLASH); await wait(1.0); busy = false; }
 async function attack() {
-  if (busy || dead) return; busy = true;
-  const to = strikePos(); heroTo(HA.Run, 0.15, 1.3);
-  heroMove = { from: heroRoot.position.clone(), to, t: 0, dur: Math.max(0.2, heroRoot.position.distanceTo(to) / 4.5) };
-  await wait(heroMove.dur);
-  heroTo(HA.Sword_Slash, 0.1, 1.3); const dur = HC.Sword_Slash.duration / 1.3;
-  await wait(dur * 0.15); trailActive = dur * 0.6;
-  await wait(dur * 0.3); hitDemon();
-  await wait(dur * 0.55); heroTo(HA.Idle_Sword, 0.3);
+  if (busy || dead) return; busy = true; heroState = 'run';
+  const to = strikePos(); heroMove = { from: heroRoot.position.clone(), to, t: 0, dur: Math.max(0.2, heroRoot.position.distanceTo(to) / 3.8) };
+  await wait(heroMove.dur); heroState = 'idle'; playTrack(SLASH); await wait(0.42); hitWolf(); await wait(0.6);
+  if (!dead) { heroMove = { from: heroRoot.position.clone(), to: HERO_HOME.clone(), t: 0, dur: 0.6, back: true }; await wait(0.6); }
   busy = false;
 }
 function reset() {
-  busy = false; dead = false; heroMove = null; setHP(100); winEl.classList.remove('show'); flash = 0;
-  heroRoot.position.copy(HERO_HOME); heroMixer.stopAllAction(); demonMixer.stopAllAction();
-  heroCur = HA.Idle_Sword; heroCur.reset().play(); demonCur = DA.Idle; demonCur.reset().play();
-  controls.autoRotate = false; document.getElementById('bOrbit').classList.remove('on');
-  camera.position.copy(CAM_HOME); controls.target.copy(TARGET_HOME);
+  busy = false; dead = false; deathT = 0; heroMove = null; hit = 0; flash = 0; setHP(100); winEl.classList.remove('show');
+  heroRoot.position.copy(HERO_HOME); heroState = 'idle'; track = null; wolfPivot.rotation.set(0, 0, 0); wolfPivot.position.set(0, 0, 0);
+  controls.autoRotate = false; document.getElementById('bOrbit').classList.remove('on'); camera.position.copy(CAM_HOME); controls.target.copy(TARGET_HOME);
 }
 document.getElementById('bSwing').onclick = swing;
 document.getElementById('bAttack').onclick = attack;
 document.getElementById('bReset').onclick = reset;
 document.getElementById('bOrbit').onclick = e => { controls.autoRotate = !controls.autoRotate; e.currentTarget.classList.toggle('on', controls.autoRotate); };
 
-// ---------- loop ----------
-const clock = new THREE.Clock();
+// ---------------- loop ----------------
+let simT = 0;
 function step(dt) {
-  if (heroMove) { heroMove.t += dt; const k = Math.min(1, heroMove.t / heroMove.dur), e = k * k * (3 - 2 * k);
-    heroRoot.position.lerpVectors(heroMove.from, heroMove.to, e); if (k >= 1) heroMove = null; }
-  heroMixer.update(dt); demonMixer.update(dt);
-  flash = Math.max(0, flash - dt * 2.2);
-  const f = flash * flash;
-  DM.hide.emissiveIntensity = f * 2.2; DM.black.emissiveIntensity = f * 1.2; demonGlow.intensity = f * 6;
-  updateTrail(dt); updateSparks(dt);
-  sword.getWorldPosition(bladeLight.position); bladeLight.intensity = 0.15 + trailActive * 5;
-  // keep the action centred: target follows midpoint of the two fighters
-  if (!controls.autoRotate && !BENCH && !Q.get('cam')) { const mid = heroRoot.position.clone().add(demonRoot.position).multiplyScalar(0.5); mid.y = 1.05;
-    controls.target.lerp(mid, Math.min(1, dt * 2)); }
+  simT += dt; grassUniforms.uTime.value = simT;
+  if (heroMove) { heroMove.t += dt; const k = Math.min(1, heroMove.t / heroMove.dur), e = k * k * (3 - 2 * k); heroRoot.position.lerpVectors(heroMove.from, heroMove.to, e); if (k >= 1) heroMove = null; }
+  animateHero(dt);
+  vrm.update(dt);
+  animateWolf(dt);
+  updateTrail(); updateSparks(dt);
+  MAT.blade.emissiveIntensity = 0.04 + swingSpeed * 1.4;
+  swordInner.localToWorld(bladeLight.position.set(0, 0.55, 0)); bladeLight.intensity = swingSpeed * 4;
+  if (!controls.autoRotate && !Q.get('cam')) { const mid = heroRoot.position.clone().add(wolfRoot.position).multiplyScalar(0.5); mid.y = 1.08; controls.target.lerp(mid, Math.min(1, dt * 2)); }
   controls.update();
 }
-function render() { composer.render(); }
+if (gtao) { const o = gtao.render.bind(gtao); gtao.render = (...a) => { trail.visible = sparks.visible = false; o(...a); trail.visible = sparks.visible = true; }; }
+const render = () => composer.render();
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); });
-
 document.getElementById('load').style.opacity = 0; setTimeout(() => document.getElementById('load').remove(), 700);
-
-// ---------- demo freeze / bench ----------
-function sim(seconds, fps = 60) { for (let t = 0; t < seconds; t += 1 / fps) step(1 / fps); }
-window.__try = () => { const g = ARM.sword, out = [], w1 = new THREE.Vector3(), w2 = new THREE.Vector3(), f = new THREE.Vector3(Math.sin(heroRoot.rotation.y), 0, Math.cos(heroRoot.rotation.y));
-  const H = Math.PI / 2; for (const x of [0, H, -H, Math.PI]) for (const y of [0, H, -H, Math.PI]) for (const z of [0, H, -H]) { g.rotation.set(x, y, z); scene.updateMatrixWorld(true);
-    tipMarker.getWorldPosition(w1); baseMarker.getWorldPosition(w2); const d = w1.sub(w2).normalize(); out.push([x.toFixed(2), y.toFixed(2), z.toFixed(2), d.y.toFixed(2), d.dot(f).toFixed(2)].join(',')); } return out.join('\n'); };
-window.__dbg = () => { const w = new THREE.Vector3(), r = {}; for (const n of ['Hips','Chest','WristR','Head']) { hb[n].getWorldPosition(w); r[n] = w.toArray().map(v => +v.toFixed(2)); }
-  tipMarker.getWorldPosition(w); r.tip = w.toArray().map(v => +v.toFixed(2)); baseMarker.getWorldPosition(w); r.base = w.toArray().map(v => +v.toFixed(2)); r.anim = heroCur.getClip().name; return JSON.stringify(r); };
-if (DEMO === 'idle') {
-  sim(1.2); render(); console.log('DBG', window.__dbg()); window.__ready = true; document.title += ' [ready]';
-} else if (DEMO === 'attack') {
-  // pose: heroine mid-slash at the demon, demon reacting with red flash, HP 50
-  heroRoot.position.copy(strikePos()); for (const e of [hpEl, lagEl]) e.style.transition = 'none'; setHP(50);
-  heroTo(HA.Sword_Slash, 0.0, 1.0); trailActive = 0.5;
-  const sd = HC.Sword_Slash.duration; sim(sd * 0.55);
-  demonTo(DA.HitReact, 0.0); sim(0.12); flash = 0.85; burst(new THREE.Vector3(demonRoot.position.x - 0.35, 1.35, demonRoot.position.z + 0.1)); sim(0.1);
-  trailActive = 0.4; flash = 0.8; step(1 / 60);
-  render(); window.__ready = true; document.title += ' [ready]';
-} else if (BENCH) {
-  const b = document.getElementById('bench'); b.style.display = 'block';
-  const t1 = performance.now(); step(1 / 60); render(); renderer.getContext().finish();
-  const first = performance.now() - t1, loadMs = t1 - T0;
-  const times = []; let last = performance.now(), n = 0;
-  (function f() { step(1 / 60); render(); const now = performance.now(); times.push(now - last); last = now;
-    if (++n < 60) requestAnimationFrame(f);
-    else { const avg = times.reduce((a, c) => a + c, 0) / times.length;
-      const r = { loadMs: +loadMs.toFixed(1), firstFrameMs: +first.toFixed(1), avgFrameMs: +avg.toFixed(2), fps: +(1000 / avg).toFixed(1), frames: 60 };
-      window.__bench = r; b.textContent = 'BENCH\n' + JSON.stringify(r, null, 1); console.log('BENCH', JSON.stringify(r)); document.title += ' [ready]'; window.__ready = true; } })();
+const sim = (s, f = 60) => { for (let t = 0; t < s; t += 1 / f) step(1 / f); };
+window.__dbg = () => JSON.stringify({ P: Object.fromEntries(Object.entries(P).map(([k, v]) => [k, v.toArray().map(x => +x.toFixed(3))])), H: HEIGHT });
+if (DEMO === 'idle') { sim(1.5); render(); console.log(window.__dbg()); window.__ready = true; }
+else if (DEMO === 'attack') {
+  heroRoot.position.copy(strikePos()); for (const e of [hpEl, lagEl]) e.style.transition = 'none'; setHP(50); sim(0.5);
+  playTrack(SLASH); sim(0.47); flash = 0.9; hit = 0.8; burst(new V3(wolfRoot.position.x - 0.35, 1.35, wolfRoot.position.z + 0.1)); sim(0.05);
+  render(); window.__ready = true;
+} else if (DEMO === 'victory') {
+  for (const e of [hpEl, lagEl]) e.style.transition = 'none'; sim(0.3); for (let i = 0; i < 4; i++) hitWolf(); dead = true; deathT = 0;
+  winEl.style.transition = 'none'; winEl.classList.add('show'); heroState = 'victory'; track = null; sim(2.0); render(); window.__ready = true;
 } else {
-  window.__game = { swing, attack, reset, hitDemon, get hp() { return hp; } };
-  if (DEMO === 'victory') { sim(0.5); for (let i = 0; i < 4; i++) hitDemon(); sim(2.5); }
+  window.__game = { swing, attack, reset, get hp() { return hp; } };
+  const clock = new THREE.Clock();
   renderer.setAnimationLoop(() => { step(Math.min(clock.getDelta(), 0.05)); render(); window.__ready = true; });
 }
 </script>
